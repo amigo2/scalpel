@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from PIL import Image as PILImage
 from sqlalchemy import select
 from io import BytesIO
+import os
 
 from .database import engine, get_session
 from .models import Base, Image, Annotation, Location, User
@@ -89,13 +90,30 @@ async def create_image(
 
     db.add(new_image)
     await db.commit()
-    await db.refresh(new_image)
+    # await db.refresh(new_image, options=[selectinload(Image.annotations)])
     return new_image
 
 
 
 
 # 2. Create a new annotation for a given image
+
+#   {
+#     "index": 13,
+#     "instrument": "inster1",
+#     "polygon": {
+#       "points": [
+#         [
+#           0,
+#           0
+#         ],
+#         [
+#           1,
+#           1
+#         ]
+#       ]
+#     }
+#   }
 @app.post("/images/{image_key}/annotations", response_model=AnnotationRead)
 async def create_annotation(
     image_key: str,
@@ -122,6 +140,7 @@ async def create_annotation(
     await db.refresh(new_annotation)
     return new_annotation
 
+
 # 3. Update an existing annotation
 @app.put("/images/{image_key}/annotations/{annotation_index}", response_model=AnnotationRead)
 async def update_annotation(
@@ -142,39 +161,6 @@ async def update_annotation(
     return annotation
 
 # 4. List all images, optionally filtering by user, location, or instrument
-# @app.get("/images", response_model=List[ImageRead])
-# async def list_images(
-#     user_ids: Optional[List[str]] = Query(None),
-#     location_ids: Optional[List[str]] = Query(None),
-#     instrument_ids: Optional[List[str]] = Query(None),
-#     db: AsyncSession = Depends(get_session)
-# ):
-#     """
-#     Example usage:
-#       GET /images?user_ids=123&user_ids=456&location_ids=LOC789&instrument_ids=INSTR987
-#     """
-#     from sqlalchemy import select, or_, and_
-
-#     query = select(Image).outerjoin(Annotation)
-
-#     # If user_ids filter
-#     if user_ids:
-#         query = query.where(Image.user_id.in_(user_ids))
-
-#     # If location_ids filter
-#     if location_ids:
-#         query = query.where(Image.location_id.in_(location_ids))
-
-#     # If instrument_ids filter
-#     if instrument_ids:
-#         query = query.where(Annotation.instrument.in_(instrument_ids))
-
-#     results = await db.execute(query.distinct())
-#     images = results.scalars().unique().all()
-#     return images
-
-
-
 @app.get("/images", response_model=List[ImageRead])
 async def list_images(
     user_ids: Optional[List[str]] = Query(None),

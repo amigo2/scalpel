@@ -1,7 +1,7 @@
 # schemas.py
 from datetime import datetime
 from typing import Optional, List, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
 class MLTagEnum(str, Enum):
@@ -35,11 +35,18 @@ class ImageBase(BaseModel):
 class ImageCreate(ImageBase):
     annotations: Optional[List[AnnotationCreate]] = []
 
-class ImageRead(ImageBase):
-    annotations: List[AnnotationRead] = []
+class ImageRead(BaseModel):
+    image_key: str
+    client_id: str
+    created_at: datetime
+    hardware_id: str
+    ml_tag: Optional[str]
+    location_id: Optional[str]
+    user_id: Optional[str]
+    annotations: List[AnnotationRead] = []  # ✅ Ensure a default value to prevent issues
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)  # ✅ New Pydantic v2 synta
+
 
 # Filter Schemas (optional if you want to handle queries)
 class ImageFilter(BaseModel):
