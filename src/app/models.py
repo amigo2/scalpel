@@ -41,7 +41,8 @@ class Image(Base):
 
     image_key = Column(String, primary_key=True, index=True)
     client_id = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+
     hardware_id = Column(String, nullable=True)
     ml_tag = Column(Enum(MLTagEnum), nullable=True)
     

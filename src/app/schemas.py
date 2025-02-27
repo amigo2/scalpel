@@ -19,7 +19,8 @@ class AnnotationCreate(AnnotationBase):
     pass
 
 class AnnotationRead(AnnotationBase):
-    pass
+    class Config:
+        orm_mode = True
 
 # Image Schemas
 class ImageBase(BaseModel):
@@ -36,6 +37,9 @@ class ImageCreate(ImageBase):
 
 class ImageRead(ImageBase):
     annotations: List[AnnotationRead] = []
+
+    class Config:
+        orm_mode = True
 
 # Filter Schemas (optional if you want to handle queries)
 class ImageFilter(BaseModel):

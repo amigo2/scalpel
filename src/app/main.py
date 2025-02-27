@@ -1,16 +1,21 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import datetime
+from sqlalchemy.orm import selectinload
+from PIL import Image as PILImage
+from sqlalchemy import select
+from io import BytesIO
 
 from .database import engine, get_session
-from .models import Base, Image, Annotation
+from .models import Base, Image, Annotation, Location, User
 from .schemas import (
     ImageCreate, ImageRead, AnnotationCreate, AnnotationRead, ImageFilter
 )
 
-app = FastAPI(title="Scalpel Challenge FastAPI & Async SQLAlchemy")
+app = FastAPI(title="Scalpel Challenge, FastAPI & Async SQLAlchemy")
 
 @app.on_event("startup")
 async def startup_event():
@@ -32,18 +37,46 @@ async def create_image(
     if existing_image:
         raise HTTPException(status_code=400, detail="Image key already exists.")
 
-    # Create Image ORM object
+    # If a location_id is provided, ensure the location exists or create it
+    if image_in.location_id:
+        location = await db.get(Location, image_in.location_id)
+        if not location:
+            new_location = Location(
+                id=image_in.location_id,
+                address="Default Address",
+                country="Default Country",
+                town="Default Town"
+            )
+            db.add(new_location)
+            await db.flush()
+    
+    # Check if user exists, if user_id is provided
+    if image_in.user_id:
+        user = await db.get(User, image_in.user_id)
+        if not user:
+            # Option 1: Create a default user (if appropriate)
+            new_user = User(
+                id=image_in.user_id,
+                first_name="Default",
+                last_name="User",
+                role="default_role"
+            )
+            db.add(new_user)
+            await db.flush()
+            
+            # Option 2: Raise an error to indicate the user must exist
+            raise HTTPException(status_code=400, detail="User does not exist. Please create the user first.")
+
     new_image = Image(
         image_key=image_in.image_key,
         client_id=image_in.client_id,
-        created_at=image_in.created_at,
+        created_at=image_in.created_at.replace(tzinfo=None),
         hardware_id=image_in.hardware_id,
         ml_tag=image_in.ml_tag.value if image_in.ml_tag else None,
         location_id=image_in.location_id,
         user_id=image_in.user_id,
     )
 
-    # Add annotations if provided
     if image_in.annotations:
         for ann in image_in.annotations:
             annotation = Annotation(
@@ -58,6 +91,9 @@ async def create_image(
     await db.commit()
     await db.refresh(new_image)
     return new_image
+
+
+
 
 # 2. Create a new annotation for a given image
 @app.post("/images/{image_key}/annotations", response_model=AnnotationRead)
@@ -106,6 +142,39 @@ async def update_annotation(
     return annotation
 
 # 4. List all images, optionally filtering by user, location, or instrument
+# @app.get("/images", response_model=List[ImageRead])
+# async def list_images(
+#     user_ids: Optional[List[str]] = Query(None),
+#     location_ids: Optional[List[str]] = Query(None),
+#     instrument_ids: Optional[List[str]] = Query(None),
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     """
+#     Example usage:
+#       GET /images?user_ids=123&user_ids=456&location_ids=LOC789&instrument_ids=INSTR987
+#     """
+#     from sqlalchemy import select, or_, and_
+
+#     query = select(Image).outerjoin(Annotation)
+
+#     # If user_ids filter
+#     if user_ids:
+#         query = query.where(Image.user_id.in_(user_ids))
+
+#     # If location_ids filter
+#     if location_ids:
+#         query = query.where(Image.location_id.in_(location_ids))
+
+#     # If instrument_ids filter
+#     if instrument_ids:
+#         query = query.where(Annotation.instrument.in_(instrument_ids))
+
+#     results = await db.execute(query.distinct())
+#     images = results.scalars().unique().all()
+#     return images
+
+
+
 @app.get("/images", response_model=List[ImageRead])
 async def list_images(
     user_ids: Optional[List[str]] = Query(None),
@@ -113,64 +182,22 @@ async def list_images(
     instrument_ids: Optional[List[str]] = Query(None),
     db: AsyncSession = Depends(get_session)
 ):
-    """
-    Example usage:
-      GET /images?user_ids=123&user_ids=456&location_ids=LOC789&instrument_ids=INSTR987
-    """
-    from sqlalchemy import select, or_, and_
-
-    query = select(Image).outerjoin(Annotation)
-
-    # If user_ids filter
+    query = select(Image).options(selectinload(Image.annotations))
+    
     if user_ids:
         query = query.where(Image.user_id.in_(user_ids))
-
-    # If location_ids filter
     if location_ids:
         query = query.where(Image.location_id.in_(location_ids))
-
-    # If instrument_ids filter
     if instrument_ids:
-        query = query.where(Annotation.instrument.in_(instrument_ids))
-
+        # When filtering by instrument, join with the Annotation table.
+        query = query.join(Image.annotations).where(Annotation.instrument.in_(instrument_ids))
+    
     results = await db.execute(query.distinct())
     images = results.scalars().unique().all()
     return images
 
-# 5. Return an image (optionally transform scale/quality)
-@app.get("/images/{image_key}/file")
-async def get_image_file(
-    image_key: str,
-    scale: float = 1.0,
-    quality: int = 100,
-    db: AsyncSession = Depends(get_session)
-):
-    """
-    In a real scenario, you might store images on S3 or disk.
-    Then retrieve, resize/compress (e.g., using Pillow),
-    and return as a streaming response or file.
-    """
-    image = await db.get(Image, image_key)
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found.")
 
-    # Pseudocode for retrieving and transforming the image:
-    # file_path = f"/some/local/path/{image.image_key}.png"
-    # from PIL import Image as PILImage
-    # pil_image = PILImage.open(file_path)
-    # # scale the image
-    # width, height = pil_image.size
-    # new_size = (int(width * scale), int(height * scale))
-    # pil_image = pil_image.resize(new_size)
-    # # adjust quality -> typically done when saving to JPEG
-    # response_bytes = io.BytesIO()
-    # pil_image.save(response_bytes, format="JPEG", quality=quality)
-    # response_bytes.seek(0)
-    # return StreamingResponse(response_bytes, media_type="image/jpeg")
 
-    return {
-        "message": f"Image {image_key} would be returned here with scale={scale}, quality={quality}."
-    }
 
 # 6. Return the annotations of an image
 @app.get("/images/{image_key}/annotations", response_model=List[AnnotationRead])
@@ -188,3 +215,73 @@ async def get_image_annotations(
     results = await db.execute(query)
     annotations = results.scalars().all()
     return annotations
+
+
+
+# {
+#   "image_key": "./images/scalpel.png",
+#   "client_id": "client01",
+#   "created_at": "2025-02-24T00:00:00Z",
+#   "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",
+#   "ml_tag": "TRAIN",
+#   "location_id": "loc1",
+#   "user_id": "user1",
+#   "annotations": [
+#     {
+#       "index": 0,
+#       "instrument": "instr1",
+#       "polygon": {
+#         "points": [[0, 0], [1, 1]]
+#       }
+#     }
+#   ]
+# }
+
+
+
+# New endpoint to return an image with adjustable scale and quality
+@app.get("/images/{image_key}/file")
+async def get_image_file(
+    image_key: str,
+    scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
+    quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
+    db: AsyncSession = Depends(get_session)
+):
+    # Verify the image exists in the database
+    image_obj = await db.get(Image, image_key)
+    if not image_obj:
+        raise HTTPException(status_code=404, detail="Image not found in database.")
+
+    # For the purpose of this challenge, we assume image_key is the file path on local disk.
+    file_path = image_key
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image file not found on disk.")
+
+    # Open the image using Pillow
+    with PILImage.open(file_path) as img:
+        # Apply scaling if necessary
+        if scale != 1.0:
+            new_size = (int(img.width * scale), int(img.height * scale))
+            # Using Resampling.LANCZOS for high-quality downsampling
+            img = img.resize(new_size, PILImage.Resampling.LANCZOS)
+
+        # Save the image to an in-memory buffer
+        buf = BytesIO()
+        # Determine the image format, defaulting to JPEG if not set
+        image_format = img.format if img.format else "JPEG"
+        # If the image is JPEG, apply the quality parameter
+        if image_format.upper() == "JPEG":
+            img.save(buf, format=image_format, quality=quality)
+        else:
+            img.save(buf, format=image_format)
+        buf.seek(0)
+
+        # Set the appropriate media type based on image format
+        if image_format.upper() == "JPEG":
+            media_type = "image/jpeg"
+        elif image_format.upper() == "PNG":
+            media_type = "image/png"
+        else:
+            media_type = "application/octet-stream"
+
+    return StreamingResponse(buf, media_type=media_type)
