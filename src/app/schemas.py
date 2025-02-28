@@ -43,9 +43,9 @@ class ImageRead(BaseModel):
     ml_tag: Optional[str]
     location_id: Optional[str]
     user_id: Optional[str]
-    annotations: List[AnnotationRead] = []  # ✅ Ensure a default value to prevent issues
+    annotations: List[AnnotationRead] = []  
 
-    model_config = ConfigDict(from_attributes=True)  # ✅ New Pydantic v2 synta
+    model_config = ConfigDict(from_attributes=True) 
 
 
 # Filter Schemas (optional if you want to handle queries)

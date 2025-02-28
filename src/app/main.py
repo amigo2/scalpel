@@ -90,6 +90,7 @@ async def create_image(
 
     db.add(new_image)
     await db.commit()
+    # the refresh is giving issues, needs more work.
     # await db.refresh(new_image, options=[selectinload(Image.annotations)])
     return new_image
 
