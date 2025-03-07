@@ -14,7 +14,7 @@ COPY src/requirements.txt ./
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
-COPY src/ .
+COPY src/ /app/src
 
 # Copy the wait script and make it executable
 COPY wait-for-it.sh /wait-for-it.sh

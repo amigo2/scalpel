@@ -35,6 +35,13 @@ project-root/
    git clone https://github.com/amigo2/scalpel
    cd scalpel
    ```
+2. **Run Docker**
+  Install docker.
+  For local dvelopment i created a --reload fastapi app so you can tweak the code and see the changes inmediatly.
+  
+  ```bash
+  docker-compose up --build
+  ```
 
 <!-- 2. ## Create and Activate a Virtual Environment
 Using Python’s built-in venv:

@@ -3,11 +3,33 @@ import uuid
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from src.app.models import User  # adjust import as needed
+
+@pytest.fixture
+async def create_test_user(db_session: AsyncSession):
+    """Fixture to create a test user before running tests."""
+    user_id = f"user_{uuid.uuid4()}"
+    user = User(
+        id=user_id,
+        first_name="Test",
+        last_name="User",
+        role="default_role"
+    )
+    db_session.add(user)
+    await db_session.commit()
+    yield user
+
+    # Cleanup: Remove the test user after tests run
+    await db_session.execute(text("DELETE FROM \"user\" WHERE id = :uid"), {"uid": user_id})
+    await db_session.commit()
+
 
 @pytest.mark.asyncio
-async def test_create_image(test_client: AsyncClient):
+async def test_create_image(test_client: AsyncClient, create_test_user):
     """Test creating an image through the FastAPI endpoint with a unique image_key."""
-    unique_image_key = f"/test_{uuid.uuid4()}/image.png"  # Generate a unique image_key starting with "test_"
+    
+
+    unique_image_key = f"/test_{uuid.uuid4()}/image.png"  # Generate a unique image_key
 
     image_data = {
         "image_key": unique_image_key,
@@ -16,7 +38,7 @@ async def test_create_image(test_client: AsyncClient):
         "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",
         "ml_tag": "TRAIN",
         "location_id": "loc1",
-        "user_id": "user1",
+        "user_id": "user1",  # this user now exists thanks to the fixture
         "annotations": [
             {
                 "index": 0,
@@ -29,14 +51,13 @@ async def test_create_image(test_client: AsyncClient):
     }
 
     response = await test_client.post("/images", json=image_data)
-
     assert response.status_code == 200, f"Response failed: {response.json()}"
-
     data = response.json()
     assert data["image_key"] == unique_image_key
     assert "annotations" in data
     assert len(data["annotations"]) == 1
     assert data["annotations"][0]["instrument"] == "instr1"
+
 
 
 @pytest.fixture(scope="session", autouse=True)

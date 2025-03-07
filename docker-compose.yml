@@ -29,6 +29,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  test:
+    build: .
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:1818@db:5432/scalpel_db"
+    depends_on:
+      - db
+    # Run pytest with your test file (or directory) as the command
+    command: ["pytest", "tests/test_endpoints.py", "--disable-warnings", "-s"]
 
 volumes:
   postgres_data:
