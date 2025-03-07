@@ -7,7 +7,7 @@ from sqlalchemy import text
 @pytest.mark.asyncio
 async def test_create_image(test_client: AsyncClient):
     """Test creating an image through the FastAPI endpoint with a unique image_key."""
-    unique_image_key = f"test_{uuid.uuid4()}"  # Generate a unique image_key starting with "test_"
+    unique_image_key = f"/test_{uuid.uuid4()}/image.png"  # Generate a unique image_key starting with "test_"
 
     image_data = {
         "image_key": unique_image_key,

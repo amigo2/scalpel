@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  web:
+    build: .
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount your local src folder to /app in the container so changes are reflected immediately
+      - ./src:/app
+      # Optionally ignore the __pycache__ folder to avoid caching issues
+      - /app/__pycache_
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:1818@db:5432/scalpel_db"
+    command: ["/wait-for-it.sh", "db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "1818"
+      POSTGRES_DB: scalpel_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

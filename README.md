@@ -36,7 +36,7 @@ project-root/
    cd scalpel
    ```
 
-## Create and Activate a Virtual Environment
+<!-- 2. ## Create and Activate a Virtual Environment
 Using Python’s built-in venv:
 
 ```bash
@@ -80,7 +80,7 @@ Running the Application
 ```bash
 cd src
 uvicorn app.main:app --reload
-```
+``` -->
 
 The server will start at http://127.0.0.1:8000. You can access the interactive API docs at:
 

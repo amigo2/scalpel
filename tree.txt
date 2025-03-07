@@ -1,0 +1,58 @@
+.
+├── README.md
+├── challenge
+│   ├── backend challenge
+│   │   ├── 2023_04_17T11_08_44_608699_top.json
+│   │   ├── 2023_04_17T11_55_12_434748_top.json
+│   │   ├── 2023_04_17T12_07_16_770735_top.json
+│   │   ├── README.md
+│   │   └── diagram.png
+│   └── frontend challenge
+│       ├── README.md
+│       ├── index.html
+│       ├── package-lock.json
+│       ├── package.json
+│       ├── public
+│       │   └── vite.svg
+│       ├── server.js
+│       ├── src
+│       │   ├── App.vue
+│       │   ├── assets
+│       │   │   └── vue.svg
+│       │   ├── components
+│       │   │   ├── pose_test.vue
+│       │   │   └── proto_demo.mjs
+│       │   ├── main.js
+│       │   └── style.sass
+│       └── vite.config.js
+├── src
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-311.pyc
+│   ├── app
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-311.pyc
+│   │   │   ├── database.cpython-311.pyc
+│   │   │   ├── main.cpython-311.pyc
+│   │   │   ├── models.cpython-311.pyc
+│   │   │   └── schemas.cpython-311.pyc
+│   │   ├── database.py
+│   │   ├── images
+│   │   │   └── scalpel.png
+│   │   ├── main.py
+│   │   ├── models.py
+│   │   └── schemas.py
+│   └── requirements.txt
+├── tests
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── conftest.cpython-311-pytest-8.3.4.pyc
+│   │   └── test_endpoints.cpython-311-pytest-8.3.4.pyc
+│   ├── conftest.py
+│   ├── pytest.ini
+│   └── test_endpoints.py
+└── tree.txt
+
+15 directories, 41 files

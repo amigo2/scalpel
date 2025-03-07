@@ -9,6 +9,7 @@ from PIL import Image as PILImage
 from sqlalchemy import select
 from io import BytesIO
 import os
+import logging
 
 from .database import engine, get_session
 from .models import Base, Image, Annotation, Location, User
@@ -16,10 +17,21 @@ from .schemas import (
     ImageCreate, ImageRead, AnnotationCreate, AnnotationRead, ImageFilter
 )
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level (INFO, DEBUG, etc.)
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Create a logger instance for this module
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Scalpel Challenge, FastAPI & Async SQLAlchemy")
 
 @app.on_event("startup")
 async def startup_event():
+    logger.info("Starting up the application and creating tables...")
     """
     Create tables at startup (not recommended for production,
     but convenient for a coding challenge).
@@ -33,6 +45,7 @@ async def create_image(
     image_in: ImageCreate,
     db: AsyncSession = Depends(get_session)
 ):
+    
     # Check if image already exists
     existing_image = await db.get(Image, image_in.image_key)
     if existing_image:
@@ -115,12 +128,14 @@ async def create_image(
 #       ]
 #     }
 #   }
+
 @app.post("/images/{image_key}/annotations", response_model=AnnotationRead)
 async def create_annotation(
     image_key: str,
     annotation_in: AnnotationCreate,
     db: AsyncSession = Depends(get_session)
 ):
+    
     image = await db.get(Image, image_key)
     if not image:
         raise HTTPException(status_code=404, detail="Image not found.")
@@ -169,6 +184,7 @@ async def list_images(
     instrument_ids: Optional[List[str]] = Query(None),
     db: AsyncSession = Depends(get_session)
 ):
+    logger.info("popitsso GET /images")
     query = select(Image).options(selectinload(Image.annotations))
     
     if user_ids:
