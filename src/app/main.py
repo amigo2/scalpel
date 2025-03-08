@@ -71,6 +71,7 @@ async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+print("Starting up the application and creating tables...")
 
 async def save_upload_file(upload_file: UploadFile) -> str:
     # Save file in the UPLOAD_DIR (i.e., static/images)
@@ -352,26 +353,34 @@ async def update_annotation(
     return annotation
 
 # 4. List all images, optionally filtering by user, location, or instrument
-@app.get("/images", response_model=List[ImageRead])
-async def list_images(
-    user_ids: Optional[List[str]] = Query(None),
-    location_ids: Optional[List[str]] = Query(None),
-    instrument_ids: Optional[List[str]] = Query(None),
-    db: AsyncSession = Depends(get_session)
-):
-    logger.info("popitsso GET /images")
-    query = select(Image).options(selectinload(Image.annotations))
+# @app.get("/images", response_model=List[ImageRead])
+# async def list_images(
+#     user_ids: Optional[List[str]] = Query(None),
+#     location_ids: Optional[List[str]] = Query(None),
+#     instrument_ids: Optional[List[str]] = Query(None),
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     logger.info("popitsso GET /images")
+#     query = select(Image).options(selectinload(Image.annotations))
     
-    if user_ids:
-        query = query.where(Image.user_id.in_(user_ids))
-    if location_ids:
-        query = query.where(Image.location_id.in_(location_ids))
-    if instrument_ids:
-        # When filtering by instrument, join with the Annotation table.
-        query = query.join(Image.annotations).where(Annotation.instrument.in_(instrument_ids))
+#     if user_ids:
+#         query = query.where(Image.user_id.in_(user_ids))
+#     if location_ids:
+#         query = query.where(Image.location_id.in_(location_ids))
+#     if instrument_ids:
+#         # When filtering by instrument, join with the Annotation table.
+#         query = query.join(Image.annotations).where(Annotation.instrument.in_(instrument_ids))
     
-    results = await db.execute(query.distinct())
-    images = results.scalars().unique().all()
+#     results = await db.execute(query.distinct())
+#     images = results.scalars().unique().all()
+#     return images
+
+
+@app.get("/images")
+async def list_images( db: AsyncSession = Depends(get_session)):
+    result = await db.execute(select(Image))
+    images = result.scalars().all()
+
     return images
 
 
@@ -418,51 +427,51 @@ async def get_image_annotations(
 
 
 # New endpoint to return an image with adjustable scale and quality
-# @app.get("/images/{image_key}/file")
-# async def get_image_file(
-#     image_key: str,
-#     scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
-#     quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
-#     db: AsyncSession = Depends(get_session)
-# ):
-#     # Verify the image exists in the database
-#     image_obj = await db.get(Image, image_key)
-#     if not image_obj:
-#         raise HTTPException(status_code=404, detail="Image not found in database.")
+@app.get("/images/{image_key}/file")
+async def get_image_file(
+    image_key: str,
+    scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
+    quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
+    db: AsyncSession = Depends(get_session)
+):
+    # Verify the image exists in the database
+    image_obj = await db.get(Image, image_key)
+    if not image_obj:
+        raise HTTPException(status_code=404, detail="Image not found in database.")
 
-#     # For the purpose of this challenge, we assume image_key is the file path on local disk.
-#     file_path = image_key
-#     if not os.path.exists(file_path):
-#         raise HTTPException(status_code=404, detail="Image file not found on disk.")
+    # For the purpose of this challenge, we assume image_key is the file path on local disk.
+    file_path = image_key
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image file not found on disk.")
 
-#     # Open the image using Pillow
-#     with PILImage.open(file_path) as img:
-#         # Apply scaling if necessary
-#         if scale != 1.0:
-#             new_size = (int(img.width * scale), int(img.height * scale))
-#             # Using Resampling.LANCZOS for high-quality downsampling
-#             img = img.resize(new_size, PILImage.Resampling.LANCZOS)
+    # Open the image using Pillow
+    with PILImage.open(file_path) as img:
+        # Apply scaling if necessary
+        if scale != 1.0:
+            new_size = (int(img.width * scale), int(img.height * scale))
+            # Using Resampling.LANCZOS for high-quality downsampling
+            img = img.resize(new_size, PILImage.Resampling.LANCZOS)
 
-#         # Save the image to an in-memory buffer
-#         buf = BytesIO()
-#         # Determine the image format, defaulting to JPEG if not set
-#         image_format = img.format if img.format else "JPEG"
-#         # If the image is JPEG, apply the quality parameter
-#         if image_format.upper() == "JPEG":
-#             img.save(buf, format=image_format, quality=quality)
-#         else:
-#             img.save(buf, format=image_format)
-#         buf.seek(0)
+        # Save the image to an in-memory buffer
+        buf = BytesIO()
+        # Determine the image format, defaulting to JPEG if not set
+        image_format = img.format if img.format else "JPEG"
+        # If the image is JPEG, apply the quality parameter
+        if image_format.upper() == "JPEG":
+            img.save(buf, format=image_format, quality=quality)
+        else:
+            img.save(buf, format=image_format)
+        buf.seek(0)
 
-#         # Set the appropriate media type based on image format
-#         if image_format.upper() == "JPEG":
-#             media_type = "image/jpeg"
-#         elif image_format.upper() == "PNG":
-#             media_type = "image/png"
-#         else:
-#             media_type = "application/octet-stream"
+        # Set the appropriate media type based on image format
+        if image_format.upper() == "JPEG":
+            media_type = "image/jpeg"
+        elif image_format.upper() == "PNG":
+            media_type = "image/png"
+        else:
+            media_type = "application/octet-stream"
 
-#     return StreamingResponse(buf, media_type=media_type)
+    return StreamingResponse(buf, media_type=media_type)
 
 # new converted endpoint
 @app.get("/images/{image_key}/file")
@@ -508,3 +517,51 @@ async def get_image_file(
             media_type = "application/octet-stream"
 
     return StreamingResponse(buf, media_type=media_type)
+
+
+
+@app.delete("/images/{image_key:path}")
+async def delete_image(image_key: str, db: AsyncSession = Depends(get_session)):
+    logger.info(f"Image key: {image_key}")
+    print("Image delete", image_key)
+
+    # Retrieve the image record from the database using the provided key.
+    result = await db.execute(select(Image).filter(Image.image_key == image_key))
+    image = result.scalars().first()  # get the first matching image
+
+    print("Image retrieved:", image)
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found in database.")
+    
+    # Delete the image record from the database.
+    await db.delete(image)
+    await db.commit()
+
+    return {"detail": "Image deleted successfully."}
+
+
+@app.get("/test")
+async def delete_image( db: AsyncSession = Depends(get_session)):
+    # logger.info(f"Image key: {image_key}")
+    # print("Image delete", image_key)
+
+    # result = await db.execute(select(Image).filter(Image.image_key == image_key))
+    result = await db.execute(select(Image))
+    images = result.scalars().all()
+
+    for image in images:
+        image_data = {column.name: getattr(image, column.name) for column in image.__table__.columns}
+        print(image_data)
+    # Retrieve the image record from the database using the provided key.
+    # image = await db.get(Image, image_key)
+    print("Image retrieved:", images[0].image_key)
+    if not images:
+        raise HTTPException(status_code=404, detail="Image not found in database.")
+    
+    image = images[0]
+
+    # Delete the image record from the database.
+    # await db.delete(image)
+    # await db.commit()
+
+    return {"detail": "Image deleted successfully."}
