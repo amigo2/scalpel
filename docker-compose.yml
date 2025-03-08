@@ -10,6 +10,7 @@ services:
     volumes:
       # Mount your local src folder to /app in the container so changes are reflected immediately
       - ./src:/app
+      - ./src/app/static:/app/static   # Mount your local static folder
       # Optionally ignore the __pycache__ folder to avoid caching issues
       - /app/__pycache_
     environment:

@@ -27,10 +27,7 @@ async def create_test_user(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_create_image(test_client: AsyncClient, create_test_user):
     """Test creating an image through the FastAPI endpoint with a unique image_key."""
-    
-
     unique_image_key = f"/test_{uuid.uuid4()}/image.png"  # Generate a unique image_key
-
     image_data = {
         "image_key": unique_image_key,
         "client_id": "client01",
@@ -49,7 +46,6 @@ async def test_create_image(test_client: AsyncClient, create_test_user):
             }
         ]
     }
-
     response = await test_client.post("/images", json=image_data)
     assert response.status_code == 200, f"Response failed: {response.json()}"
     data = response.json()

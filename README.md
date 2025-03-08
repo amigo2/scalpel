@@ -25,25 +25,33 @@ project-root/
 ## Prerequisites
 
 - **Python 3.9+**
-- **PostgreSQL**: Ensure PostgreSQL is installed and running.
+- **PostgreSQL**
+- **Docker**
 
 ## Setup
 
-1. **Clone the Repository**
+**Clone the Repository**
 
    ```bash
    git clone https://github.com/amigo2/scalpel
    cd scalpel
    ```
-2. **Run Docker**
-  Install docker.
-  For local dvelopment i created a --reload fastapi app so you can tweak the code and see the changes inmediatly.
-  
+## Build and run Docker
+  Install Docker.  
+  For local development I've created a --reload Fastapi app so you can tweak the code and see the changes inmediatly.  
+
+  Build docker app and database, and will run the tests
   ```bash
   docker-compose up --build
   ```
+  After building, you can run tests separately.  
+  Test backend endpoints async to db
+  ```bash
+  docker-compose run test  
+  ```
 
-<!-- 2. ## Create and Activate a Virtual Environment
+
+<!-- ## Create and Activate a Virtual Environment (Not recomended)
 Using Python’s built-in venv:
 
 ```bash
@@ -87,7 +95,7 @@ Running the Application
 ```bash
 cd src
 uvicorn app.main:app --reload
-``` -->
+```  -->
 
 The server will start at http://127.0.0.1:8000. You can access the interactive API docs at:
 

@@ -2,6 +2,9 @@
 ├── Dockerfile
 ├── README.md
 ├── challenge
+│   ├── 2023_04_17T11_08_44_608699_top.png
+│   ├── 2023_04_17T11_55_12_434748_top.png
+│   ├── 2023_04_17T12_07_16_770735_top.png
 │   ├── backend challenge
 │   │   ├── 2023_04_17T11_08_44_608699_top.json
 │   │   ├── 2023_04_17T11_55_12_434748_top.json
@@ -47,6 +50,7 @@
 │   │   │   ├── schemas.cpython-311.pyc
 │   │   │   └── schemas.cpython-39.pyc
 │   │   ├── database.py
+│   │   ├── files
 │   │   ├── images
 │   │   │   └── scalpel.png
 │   │   ├── main.py
@@ -61,11 +65,12 @@
 │   │   ├── __init__.cpython-39.pyc
 │   │   ├── conftest.cpython-311-pytest-8.3.4.pyc
 │   │   ├── conftest.cpython-39-pytest-8.3.4.pyc
-│   │   └── test_endpoints.cpython-311-pytest-8.3.4.pyc
+│   │   ├── test_endpoints.cpython-311-pytest-8.3.4.pyc
+│   │   └── test_endpoints.cpython-39-pytest-8.3.4.pyc
 │   ├── conftest.py
 │   ├── pytest.ini
 │   └── test_endpoints.py
 ├── tree.txt
 └── wait-for-it.sh
 
-17 directories, 52 files
+18 directories, 56 files

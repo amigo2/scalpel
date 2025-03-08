@@ -1,7 +1,10 @@
 # main.py
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import selectinload
@@ -10,7 +13,7 @@ from sqlalchemy import select
 from io import BytesIO
 import os
 import logging
-
+import json
 from .database import engine, get_session
 from .models import Base, Image, Annotation, Location, User
 from .schemas import (
@@ -27,7 +30,36 @@ logging.basicConfig(
 # Create a logger instance for this module
 logger = logging.getLogger(__name__)
 
+
+# Define directories
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+# We'll store uploads in a subfolder of the static directory (e.g., "uploads")
+UPLOAD_DIR = os.path.join(STATIC_DIR, "images")
+os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
+
 app = FastAPI(title="Scalpel Challenge, FastAPI & Async SQLAlchemy")
+
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -39,19 +71,70 @@ async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-# 1. Create an image (with optional annotations)
+
+async def save_upload_file(upload_file: UploadFile) -> str:
+    directory = "files"
+    os.makedirs(directory, exist_ok=True)  # Create directory if it doesn't exist
+    file_location = os.path.join(directory, upload_file.filename)
+    with open(file_location, "wb") as file_object:
+        file_object.write(await upload_file.read())
+        
+    return f"/static/images/{upload_file.filename}"
+
+# {
+#     "image_key": "",
+#     "client_id": "client01",
+#     "created_at": "2025-02-24T00:00:00Z",
+#     "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",
+#     "ml_tag": "TRAIN",
+#     "location_id": "loc1",
+#     "user_id": "user1",
+#     "annotations": [
+#         {
+#             "index": 0,
+#             "instrument": "instr1",
+#             "polygon": {
+#                 "points": [[0, 0], [1, 1]]
+#             }
+#         }
+#     ]
+# }
+
+
 @app.post("/images", response_model=ImageRead)
 async def create_image(
-    image_in: ImageCreate,
+    image_file: UploadFile = File(...),
+    image_form: str = Form(...),
     db: AsyncSession = Depends(get_session)
 ):
+    # Parse the JSON string from the form field
+    try:
+        image_form_data = json.loads(image_form)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON in image_form: {str(e)}")
     
-    # Check if image already exists
+    # Build the Pydantic model from the parsed data
+    try:
+        image_in = ImageCreate(**image_form_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error parsing image form data: {str(e)}")
+    
+    # Save the uploaded file and get the file location to use as image_key
+    try:
+        image_key = await save_upload_file(image_file)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error saving image file: {str(e)}")
+    
+    # Update the image data with the new image_key.
+    # Using .copy(update={...}) ensures immutability is preserved.
+    image_in = image_in.copy(update={"image_key": image_key})
+    
+    # Optional: Check if an image with the same key already exists.
     existing_image = await db.get(Image, image_in.image_key)
     if existing_image:
         raise HTTPException(status_code=400, detail="Image key already exists.")
-
-    # If a location_id is provided, ensure the location exists or create it
+    
+    # If a location_id is provided, ensure the location exists or create it.
     if image_in.location_id:
         location = await db.get(Location, image_in.location_id)
         if not location:
@@ -64,11 +147,11 @@ async def create_image(
             db.add(new_location)
             await db.flush()
     
-    # Check if user exists, if user_id is provided
+    # If a user_id is provided, check if the user exists.
     if image_in.user_id:
         user = await db.get(User, image_in.user_id)
         if not user:
-            # Option 1: Create a default user (if appropriate)
+            # Optionally, create a default user or raise an error.
             new_user = User(
                 id=image_in.user_id,
                 first_name="Default",
@@ -77,10 +160,10 @@ async def create_image(
             )
             db.add(new_user)
             await db.flush()
-            
-            # Option 2: Raise an error to indicate the user must exist
-            raise HTTPException(status_code=400, detail="User does not exist. Please create the user first.")
-
+            # Alternatively, uncomment the following line to raise an error instead:
+            # raise HTTPException(status_code=400, detail="User does not exist. Please create the user first.")
+    
+    # Create the new Image ORM instance using the data from the Pydantic model.
     new_image = Image(
         image_key=image_in.image_key,
         client_id=image_in.client_id,
@@ -90,7 +173,8 @@ async def create_image(
         location_id=image_in.location_id,
         user_id=image_in.user_id,
     )
-
+    
+    # If there are annotations provided, add them to the image.
     if image_in.annotations:
         for ann in image_in.annotations:
             annotation = Annotation(
@@ -100,12 +184,103 @@ async def create_image(
                 polygon=ann.polygon
             )
             new_image.annotations.append(annotation)
-
+    
     db.add(new_image)
     await db.commit()
-    # the refresh is giving issues, needs more work.
-    # await db.refresh(new_image, options=[selectinload(Image.annotations)])
+    # Optionally refresh if needed: await db.refresh(new_image)
     return new_image
+
+
+
+
+
+
+# 1. Create an image (with optional annotations)
+# @app.post("/images", response_model=ImageRead)
+# async def create_image(
+#     image_file: UploadFile = File(...),
+#     image_form: str = Form(...),
+
+#     # Include additional fields if necessary.
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     image_form = json.loads(image_form)
+#     image_in = ImageCreate(**image_form)
+
+#     try: 
+#         image_key = await save_upload_file(image_file)
+#         image_in["image_key"] = image_key
+#         new_image = Image(
+
+
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"Error saving image file: {str(e)}")
+    
+
+    # Save the uploaded file and get its storage path as image_key
+    # image_key = await save_upload_file(image_file)
+
+
+    # # Check if image already exists
+    # existing_image = await db.get(Image, image_in.image_key)
+    # if existing_image:
+    #     raise HTTPException(status_code=400, detail="Image key already exists.")
+
+    # # If a location_id is provided, ensure the location exists or create it
+    # if image_in.location_id:
+    #     location = await db.get(Location, image_in.location_id)
+    #     if not location:
+    #         new_location = Location(
+    #             id=image_in.location_id,
+    #             address="Default Address",
+    #             country="Default Country",
+    #             town="Default Town"
+    #         )
+    #         db.add(new_location)
+    #         await db.flush()
+    
+    # # Check if user exists, if user_id is provided
+    # if image_in.user_id:
+    #     user = await db.get(User, image_in.user_id)
+    #     if not user:
+    #         # Option 1: Create a default user (if appropriate)
+    #         new_user = User(
+    #             id=image_in.user_id,
+    #             first_name="Default",
+    #             last_name="User",
+    #             role="default_role"
+    #         )
+    #         db.add(new_user)
+    #         await db.flush()
+            
+    #         # Option 2: Raise an error to indicate the user must exist
+    #         raise HTTPException(status_code=400, detail="User does not exist. Please create the user first.")
+
+    # new_image = Image(
+    #     image_key=image_in.image_key,
+    #     client_id=image_in.client_id,
+    #     created_at=image_in.created_at.replace(tzinfo=None),
+    #     hardware_id=image_in.hardware_id,
+    #     ml_tag=image_in.ml_tag.value if image_in.ml_tag else None,
+    #     location_id=image_in.location_id,
+    #     user_id=image_in.user_id,
+    # )
+
+    # if image_in.annotations:
+    #     for ann in image_in.annotations:
+    #         annotation = Annotation(
+    #             image_key=image_in.image_key,
+    #             index=ann.index,
+    #             instrument=ann.instrument,
+    #             polygon=ann.polygon
+    #         )
+    #         new_image.annotations.append(annotation)
+
+    # db.add(new_image)
+    # await db.commit()
+    # # the refresh is giving issues, needs more work.
+    # # await db.refresh(new_image, options=[selectinload(Image.annotations)])
+    # return new_image
 
 
 
