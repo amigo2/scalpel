@@ -27,6 +27,7 @@ project-root/
 - **Python 3.9+**
 - **PostgreSQL**
 - **Docker**
+- **Node**
 
 ## Setup
 

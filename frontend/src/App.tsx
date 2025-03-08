@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
+// Types
 interface Annotation {
   index: number;
   instrument: string;
   polygon?: Record<string, unknown>;
 }
 
-interface Image {
+export interface Image {
   image_key: string;
   client_id: string;
   created_at: string;
@@ -17,56 +19,82 @@ interface Image {
   annotations: Annotation[];
 }
 
+// TopBar Component
+const TopBar: React.FC<{ title: string }> = ({ title }) => {
+  return (
+    <div style={{
+      background: '#333',
+      color: '#fff',
+      padding: '10px 20px'
+    }}>
+      <h1 style={{ margin: 0 }}>{title}</h1>
+    </div>
+  );
+};
+
+// ImageCard Component
+const ImageCard: React.FC<{ image: Image }> = ({ image }) => {
+  return (
+    <div style={{
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      padding: '10px',
+      margin: '10px',
+      background: '#fff'
+    }}>
+      <img 
+        src={`http://localhost:8000${image.image_key}`} 
+        alt="Uploaded" 
+        style={{
+          width: '100%',
+          height: 'auto',
+          borderRadius: '4px'
+        }}
+      />
+      <div style={{ marginTop: '10px' }}>
+        <p><strong>Client:</strong> {image.client_id}</p>
+        <p><strong>Created at:</strong> {image.created_at}</p>
+        <p><strong>Hardware:</strong> {image.hardware_id}</p>
+      </div>
+    </div>
+  );
+};
+
+// ImagesGrid Component (2 columns)
+const ImagesGrid: React.FC<{ images: Image[] }> = ({ images }) => {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 1fr)',
+      gap: '20px',
+      padding: '20px'
+    }}>
+      {images.map(image => (
+        <ImageCard key={image.image_key} image={image} />
+      ))}
+    </div>
+  );
+};
+
+// Main App Component
 function App() {
   const [images, setImages] = useState<Image[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:8000/images')
+    axios.get<Image[]>('http://localhost:8000/images')
       .then((response) => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
+        setImages(response.data);
       })
-      .then((data: Image[]) => setImages(data))
-      .catch((error) => console.error('Error fetching images:', error));
+      .catch((error) => {
+        console.error('Error fetching images:', error);
+      });
   }, []);
 
   return (
     <div>
-      <h1>Images</h1>
-      <ul>
-        {images.map((image) => (
-          <li key={image.image_key}>
-            <strong>Image:</strong> {image.image_key} <br />
-            <strong>Client:</strong> {image.client_id} <br />
-            <strong>Created at:</strong> {image.created_at} <br />
-            <strong>Hardware:</strong> {image.hardware_id} <br />
-            {/* Display the image using the backend URL */}
-            <img 
-              src={`http://localhost:8000${image.image_key}`} 
-              alt="Uploaded" 
-              style={{ maxWidth: '300px', marginTop: '10px' }}
-            />
-
-            {/* <img
-              src={`http://localhost:8000${image.image_key}`}
-              alt="Uploaded"
-              style={{ maxWidth: '300px', marginTop: '10px' }}
-            /> */}
-            {image.annotations.length > 0 && (
-              <ul>
-                {image.annotations.map((ann) => (
-                  <li key={ann.index}>
-                    <strong>Instrument:</strong> {ann.instrument} <br />
-                    <strong>Polygon:</strong> {JSON.stringify(ann.polygon)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
+      <TopBar title="Scalpel" />
+      <h2 style={{ padding: '20px' }}>Images</h2>
+      <ImagesGrid images={images} />
     </div>
   );
 }
