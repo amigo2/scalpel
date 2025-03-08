@@ -45,7 +45,7 @@ origins = [
     "http://localhost.tiangolo.com",
     "https://localhost.tiangolo.com",
     "http://localhost",
-    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
@@ -73,12 +73,12 @@ async def startup_event():
 
 
 async def save_upload_file(upload_file: UploadFile) -> str:
-    directory = "files"
-    os.makedirs(directory, exist_ok=True)  # Create directory if it doesn't exist
-    file_location = os.path.join(directory, upload_file.filename)
+    # Save file in the UPLOAD_DIR (i.e., static/images)
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_location = os.path.join(UPLOAD_DIR, upload_file.filename)
     with open(file_location, "wb") as file_object:
         file_object.write(await upload_file.read())
-        
+    # Return the URL path for the file so clients can access it via /static
     return f"/static/images/{upload_file.filename}"
 
 # {
@@ -418,6 +418,53 @@ async def get_image_annotations(
 
 
 # New endpoint to return an image with adjustable scale and quality
+# @app.get("/images/{image_key}/file")
+# async def get_image_file(
+#     image_key: str,
+#     scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
+#     quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     # Verify the image exists in the database
+#     image_obj = await db.get(Image, image_key)
+#     if not image_obj:
+#         raise HTTPException(status_code=404, detail="Image not found in database.")
+
+#     # For the purpose of this challenge, we assume image_key is the file path on local disk.
+#     file_path = image_key
+#     if not os.path.exists(file_path):
+#         raise HTTPException(status_code=404, detail="Image file not found on disk.")
+
+#     # Open the image using Pillow
+#     with PILImage.open(file_path) as img:
+#         # Apply scaling if necessary
+#         if scale != 1.0:
+#             new_size = (int(img.width * scale), int(img.height * scale))
+#             # Using Resampling.LANCZOS for high-quality downsampling
+#             img = img.resize(new_size, PILImage.Resampling.LANCZOS)
+
+#         # Save the image to an in-memory buffer
+#         buf = BytesIO()
+#         # Determine the image format, defaulting to JPEG if not set
+#         image_format = img.format if img.format else "JPEG"
+#         # If the image is JPEG, apply the quality parameter
+#         if image_format.upper() == "JPEG":
+#             img.save(buf, format=image_format, quality=quality)
+#         else:
+#             img.save(buf, format=image_format)
+#         buf.seek(0)
+
+#         # Set the appropriate media type based on image format
+#         if image_format.upper() == "JPEG":
+#             media_type = "image/jpeg"
+#         elif image_format.upper() == "PNG":
+#             media_type = "image/png"
+#         else:
+#             media_type = "application/octet-stream"
+
+#     return StreamingResponse(buf, media_type=media_type)
+
+# new converted endpoint
 @app.get("/images/{image_key}/file")
 async def get_image_file(
     image_key: str,
@@ -430,31 +477,29 @@ async def get_image_file(
     if not image_obj:
         raise HTTPException(status_code=404, detail="Image not found in database.")
 
-    # For the purpose of this challenge, we assume image_key is the file path on local disk.
-    file_path = image_key
+    # Convert the URL image key to an actual file path.
+    # For example, if image_key is "/static/images/filename.png", remove "/static" and prepend STATIC_DIR.
+    if image_key.startswith("/static"):
+        file_path = os.path.join(STATIC_DIR, image_key[len("/static/"):])
+    else:
+        file_path = image_key
+
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Image file not found on disk.")
 
-    # Open the image using Pillow
     with PILImage.open(file_path) as img:
-        # Apply scaling if necessary
         if scale != 1.0:
             new_size = (int(img.width * scale), int(img.height * scale))
-            # Using Resampling.LANCZOS for high-quality downsampling
             img = img.resize(new_size, PILImage.Resampling.LANCZOS)
 
-        # Save the image to an in-memory buffer
         buf = BytesIO()
-        # Determine the image format, defaulting to JPEG if not set
         image_format = img.format if img.format else "JPEG"
-        # If the image is JPEG, apply the quality parameter
         if image_format.upper() == "JPEG":
             img.save(buf, format=image_format, quality=quality)
         else:
             img.save(buf, format=image_format)
         buf.seek(0)
 
-        # Set the appropriate media type based on image format
         if image_format.upper() == "JPEG":
             media_type = "image/jpeg"
         elif image_format.upper() == "PNG":

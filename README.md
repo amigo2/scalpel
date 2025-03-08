@@ -50,6 +50,25 @@ project-root/
   docker-compose run test  
   ```
 
+## Frontend
+Using Create React App:  
+```bash
+npx create-react-app frontend --template typescript
+```
+When installing vite:  
+Target directory "frontend" is not empty.  
+Please choose how to proceed:  
+│  Remove existing files and continue  
+
+```bash
+npm init vite@latest frontend -- --template react-ts
+```
+Now run
+```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
 
 <!-- ## Create and Activate a Virtual Environment (Not recomended)
 Using Python’s built-in venv:
