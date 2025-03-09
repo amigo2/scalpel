@@ -4,9 +4,10 @@ import axios from 'axios';
 interface NewImageModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreated: () => void;
 }
 
-const NewImageModal: React.FC<NewImageModalProps> = ({ isOpen, onClose }) => {
+const NewImageModal: React.FC<NewImageModalProps> = ({ isOpen, onClose, onCreated }) => {
   const [clientId, setClientId] = useState("client01");
   const [createdAt, setCreatedAt] = useState("2025-02-24T00:00:00Z");
   const [hardwareId, setHardwareId] = useState("3af9d8da-c689-48f5-bd87-afbfc999e589");
@@ -69,6 +70,7 @@ const NewImageModal: React.FC<NewImageModalProps> = ({ isOpen, onClose }) => {
       await axios.post("http://localhost:8000/images", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      onCreated(); 
       onClose();
     } catch (err: any) {
       setError(err.response?.data?.detail || "An error occurred");

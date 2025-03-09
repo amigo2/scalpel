@@ -84,7 +84,15 @@ function App() {
         />
       </div>
 
-      <NewImageModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <NewImageModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onCreated={() => {
+            axios.get<Image[]>("http://localhost:8000/images")
+              .then(res => setImages(res.data))
+              .catch(err => console.error(err));
+          }}
+        />
 
       {isUpdateModalOpen && selectedImageKey && (
         <UpdateImage
