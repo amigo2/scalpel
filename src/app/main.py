@@ -305,18 +305,16 @@ async def create_image(
 #     }
 #   }
 
-@app.post("/images/{image_key}/annotations", response_model=AnnotationRead)
+@app.post("/images/{image_key:path}/annotations", response_model=AnnotationRead)
 async def create_annotation(
     image_key: str,
     annotation_in: AnnotationCreate,
     db: AsyncSession = Depends(get_session)
 ):
-    
     image = await db.get(Image, image_key)
     if not image:
         raise HTTPException(status_code=404, detail="Image not found.")
 
-    # Check if annotation with the same index exists
     existing_annotation = await db.get(Annotation, (image_key, annotation_in.index))
     if existing_annotation:
         raise HTTPException(status_code=400, detail="Annotation index already exists for this image.")
@@ -331,6 +329,7 @@ async def create_annotation(
     await db.commit()
     await db.refresh(new_annotation)
     return new_annotation
+
 
 
 # 3. Update an existing annotation
@@ -378,9 +377,14 @@ async def update_annotation(
 
 @app.get("/images")
 async def list_images( db: AsyncSession = Depends(get_session)):
-    result = await db.execute(select(Image))
-    images = result.scalars().all()
+    # result = await db.execute(select(Image))
+    # images = result.scalars().all()
 
+    # return images
+    query = select(Image).options(selectinload(Image.annotations))
+
+    results = await db.execute(query.distinct())
+    images = results.scalars().unique().all()
     return images
 
 
@@ -427,96 +431,96 @@ async def get_image_annotations(
 
 
 # New endpoint to return an image with adjustable scale and quality
-@app.get("/images/{image_key}/file")
-async def get_image_file(
-    image_key: str,
-    scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
-    quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
-    db: AsyncSession = Depends(get_session)
-):
-    # Verify the image exists in the database
-    image_obj = await db.get(Image, image_key)
-    if not image_obj:
-        raise HTTPException(status_code=404, detail="Image not found in database.")
+# @app.get("/images/{image_key}/file")
+# async def get_image_file(
+#     image_key: str,
+#     scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
+#     quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     # Verify the image exists in the database
+#     image_obj = await db.get(Image, image_key)
+#     if not image_obj:
+#         raise HTTPException(status_code=404, detail="Image not found in database.")
 
-    # For the purpose of this challenge, we assume image_key is the file path on local disk.
-    file_path = image_key
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Image file not found on disk.")
+#     # For the purpose of this challenge, we assume image_key is the file path on local disk.
+#     file_path = image_key
+#     if not os.path.exists(file_path):
+#         raise HTTPException(status_code=404, detail="Image file not found on disk.")
 
-    # Open the image using Pillow
-    with PILImage.open(file_path) as img:
-        # Apply scaling if necessary
-        if scale != 1.0:
-            new_size = (int(img.width * scale), int(img.height * scale))
-            # Using Resampling.LANCZOS for high-quality downsampling
-            img = img.resize(new_size, PILImage.Resampling.LANCZOS)
+#     # Open the image using Pillow
+#     with PILImage.open(file_path) as img:
+#         # Apply scaling if necessary
+#         if scale != 1.0:
+#             new_size = (int(img.width * scale), int(img.height * scale))
+#             # Using Resampling.LANCZOS for high-quality downsampling
+#             img = img.resize(new_size, PILImage.Resampling.LANCZOS)
 
-        # Save the image to an in-memory buffer
-        buf = BytesIO()
-        # Determine the image format, defaulting to JPEG if not set
-        image_format = img.format if img.format else "JPEG"
-        # If the image is JPEG, apply the quality parameter
-        if image_format.upper() == "JPEG":
-            img.save(buf, format=image_format, quality=quality)
-        else:
-            img.save(buf, format=image_format)
-        buf.seek(0)
+#         # Save the image to an in-memory buffer
+#         buf = BytesIO()
+#         # Determine the image format, defaulting to JPEG if not set
+#         image_format = img.format if img.format else "JPEG"
+#         # If the image is JPEG, apply the quality parameter
+#         if image_format.upper() == "JPEG":
+#             img.save(buf, format=image_format, quality=quality)
+#         else:
+#             img.save(buf, format=image_format)
+#         buf.seek(0)
 
-        # Set the appropriate media type based on image format
-        if image_format.upper() == "JPEG":
-            media_type = "image/jpeg"
-        elif image_format.upper() == "PNG":
-            media_type = "image/png"
-        else:
-            media_type = "application/octet-stream"
+#         # Set the appropriate media type based on image format
+#         if image_format.upper() == "JPEG":
+#             media_type = "image/jpeg"
+#         elif image_format.upper() == "PNG":
+#             media_type = "image/png"
+#         else:
+#             media_type = "application/octet-stream"
 
-    return StreamingResponse(buf, media_type=media_type)
+#     return StreamingResponse(buf, media_type=media_type)
 
 # new converted endpoint
-@app.get("/images/{image_key}/file")
-async def get_image_file(
-    image_key: str,
-    scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
-    quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
-    db: AsyncSession = Depends(get_session)
-):
-    # Verify the image exists in the database
-    image_obj = await db.get(Image, image_key)
-    if not image_obj:
-        raise HTTPException(status_code=404, detail="Image not found in database.")
+# @app.get("/images/{image_key}/file")
+# async def get_image_file(
+#     image_key: str,
+#     scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
+#     quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     # Verify the image exists in the database
+#     image_obj = await db.get(Image, image_key)
+#     if not image_obj:
+#         raise HTTPException(status_code=404, detail="Image not found in database.")
 
-    # Convert the URL image key to an actual file path.
-    # For example, if image_key is "/static/images/filename.png", remove "/static" and prepend STATIC_DIR.
-    if image_key.startswith("/static"):
-        file_path = os.path.join(STATIC_DIR, image_key[len("/static/"):])
-    else:
-        file_path = image_key
+#     # Convert the URL image key to an actual file path.
+#     # For example, if image_key is "/static/images/filename.png", remove "/static" and prepend STATIC_DIR.
+#     if image_key.startswith("/static"):
+#         file_path = os.path.join(STATIC_DIR, image_key[len("/static/"):])
+#     else:
+#         file_path = image_key
 
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Image file not found on disk.")
+#     if not os.path.exists(file_path):
+#         raise HTTPException(status_code=404, detail="Image file not found on disk.")
 
-    with PILImage.open(file_path) as img:
-        if scale != 1.0:
-            new_size = (int(img.width * scale), int(img.height * scale))
-            img = img.resize(new_size, PILImage.Resampling.LANCZOS)
+#     with PILImage.open(file_path) as img:
+#         if scale != 1.0:
+#             new_size = (int(img.width * scale), int(img.height * scale))
+#             img = img.resize(new_size, PILImage.Resampling.LANCZOS)
 
-        buf = BytesIO()
-        image_format = img.format if img.format else "JPEG"
-        if image_format.upper() == "JPEG":
-            img.save(buf, format=image_format, quality=quality)
-        else:
-            img.save(buf, format=image_format)
-        buf.seek(0)
+#         buf = BytesIO()
+#         image_format = img.format if img.format else "JPEG"
+#         if image_format.upper() == "JPEG":
+#             img.save(buf, format=image_format, quality=quality)
+#         else:
+#             img.save(buf, format=image_format)
+#         buf.seek(0)
 
-        if image_format.upper() == "JPEG":
-            media_type = "image/jpeg"
-        elif image_format.upper() == "PNG":
-            media_type = "image/png"
-        else:
-            media_type = "application/octet-stream"
+#         if image_format.upper() == "JPEG":
+#             media_type = "image/jpeg"
+#         elif image_format.upper() == "PNG":
+#             media_type = "image/png"
+#         else:
+#             media_type = "application/octet-stream"
 
-    return StreamingResponse(buf, media_type=media_type)
+#     return StreamingResponse(buf, media_type=media_type)
 
 
 
@@ -565,3 +569,53 @@ async def delete_image( db: AsyncSession = Depends(get_session)):
     # await db.commit()
 
     return {"detail": "Image deleted successfully."}
+
+
+
+
+
+@app.put("/images/{image_key:path}/file")
+async def update_image_file(
+    image_key: str,
+    scale: float = Query(1.0, gt=0.0, description="Scaling factor for the image (e.g., 0.5 for half size)"),
+    quality: int = Query(75, ge=1, le=100, description="Quality for JPEG images (1-100)"),
+    db: AsyncSession = Depends(get_session)
+):
+    print("Image update", image_key)
+    # Verify the image exists in the database
+    image_obj = await db.get(Image, image_key)
+    if not image_obj:
+        raise HTTPException(status_code=404, detail="Image not found in database.")
+
+    # Convert the URL-based image key to a file system path.
+    if image_key.startswith("/static"):
+        file_path = os.path.join(STATIC_DIR, image_key[len("/static/"):])
+    else:
+        file_path = image_key
+
+    print("File path:", file_path)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image file not found on disk.")
+
+    # Open the image, apply scaling and quality changes
+    with PILImage.open(file_path) as img:
+        if scale != 1.0:
+            new_size = (int(img.width * scale), int(img.height * scale))
+            img = img.resize(new_size, PILImage.Resampling.LANCZOS)
+
+        buf = BytesIO()
+        image_format = img.format if img.format else "JPEG"
+        if image_format.upper() == "JPEG":
+            img.save(buf, format=image_format, quality=quality)
+        else:
+            # For PNG, quality is not used but you could add optimize/compression options
+            img.save(buf, format=image_format)
+        buf.seek(0)
+
+        # Optionally, overwrite the file on disk with the updated version
+        with open(file_path, "wb") as f:
+            f.write(buf.getbuffer())
+        buf.seek(0)
+
+    return StreamingResponse(buf, media_type=f"image/{image_format.lower()}")
