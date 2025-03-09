@@ -42,7 +42,7 @@ const UpdateImage: React.FC<UpdateImageProps> = ({ imageKey, onClose }) => {
       <div className="bg-white rounded shadow-lg max-w-lg w-full p-6">
         <h2 className="text-2xl font-bold mb-4">Update Image</h2>
         <p className="text-sm text-gray-600 mb-4">
-          Update the scale and quality of the image.  
+          Update the scale and quality(only JPEG) of the image.  
           The updated image will replace the preview below.
         </p>
         {error && <p className="text-red-500 mb-4">{error}</p>}
