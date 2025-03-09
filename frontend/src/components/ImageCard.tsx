@@ -32,6 +32,7 @@ export function ImageCard({
         {image.annotations.length > 0 && (
           <div className="mt-3">
             <strong>Annotations:</strong>
+
             {image.annotations.map(ann => (
               <div key={ann.index} className="flex items-center justify-between border-b py-1">
                 <p>
@@ -45,6 +46,9 @@ export function ImageCard({
                 </button>
               </div>
             ))}
+
+
+            
           </div>
         )}
       </div>

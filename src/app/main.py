@@ -17,7 +17,7 @@ import json
 from .database import engine, get_session
 from .models import Base, Image, Annotation, Location, User
 from .schemas import (
-    ImageCreate, ImageRead, AnnotationCreate, AnnotationRead, ImageFilter
+    ImageCreate, ImageRead, AnnotationCreate, AnnotationRead, ImageFilter, AnnotationUpdateRequest
 )
 
 # Configure logging
@@ -332,24 +332,48 @@ async def create_annotation(
 
 
 
-# 3. Update an existing annotation
-@app.put("/images/{image_key:path}/annotations/{annotation_index}", response_model=AnnotationRead)
+@app.put("/annotations/update", response_model=AnnotationRead)
 async def update_annotation(
-    image_key: str,
-    annotation_index: int,
-    annotation_in: AnnotationCreate,
+    annotation_update: AnnotationUpdateRequest,
     db: AsyncSession = Depends(get_session)
 ):
+    image_key = annotation_update.image_key
+    annotation_index = annotation_update.annotation_index
+
+    print("Updating annotation...", image_key, annotation_index)
+    logging.info(f"Updating annotation: {image_key}, {annotation_index}")
+
     annotation = await db.get(Annotation, (image_key, annotation_index))
     if not annotation:
         raise HTTPException(status_code=404, detail="Annotation not found.")
 
-    annotation.instrument = annotation_in.instrument
-    annotation.polygon = annotation_in.polygon
+    annotation.instrument = annotation_update.instrument
+    annotation.polygon = annotation_update.polygon
     db.add(annotation)
     await db.commit()
     await db.refresh(annotation)
     return annotation
+
+
+# 3. Update an existing annotation
+# @app.put("/images/{image_key:path}/annotations/{annotation_index:path}", response_model=AnnotationRead)
+# async def update_annotation(
+#     image_key: str,
+#     annotation_index: int,
+#     annotation_in: AnnotationCreate,
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     print("Update annotation...", image_key, annotation_index, annotation_in)
+#     annotation = await db.get(Annotation, (image_key, annotation_index))
+#     if not annotation:
+#         raise HTTPException(status_code=404, detail="Annotation not found.")
+
+#     annotation.instrument = annotation_in.instrument
+#     annotation.polygon = annotation_in.polygon
+#     db.add(annotation)
+#     await db.commit()
+#     await db.refresh(annotation)
+#     return annotation
 
 # 4. List all images, optionally filtering by user, location, or instrument
 # @app.get("/images", response_model=List[ImageRead])

@@ -35,26 +35,29 @@ const UpdateAnnotationModal: React.FC<UpdateAnnotationModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     setLoading(true);
-
+  
     let polygonJson;
     try {
       polygonJson = JSON.parse(polygon);
+      if (!polygonJson.points || !Array.isArray(polygonJson.points)) {
+        throw new Error("Invalid polygon structure");
+      }
     } catch {
       setError("Invalid JSON format in Polygon field.");
       setLoading(false);
       return;
     }
-
-    const sanitizedImageKey = imageKey.startsWith('/') ? imageKey.substring(1) : imageKey;
-
+  
     try {
-      await axios.put(
-        `http://localhost:8000/images/${encodeURIComponent(sanitizedImageKey)}/annotations/${annotationIndex}`,
-        { instrument, polygon: polygonJson }
-      );
-
+      await axios.put("http://localhost:8000/annotations/update", {
+        image_key: imageKey,
+        annotation_index: annotationIndex,
+        instrument,
+        polygon: polygonJson,
+      });
+  
       onUpdated?.();
       onClose();
     } catch (err: any) {
@@ -63,6 +66,9 @@ const UpdateAnnotationModal: React.FC<UpdateAnnotationModalProps> = ({
       setLoading(false);
     }
   };
+  
+  
+
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">

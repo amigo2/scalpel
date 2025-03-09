@@ -53,3 +53,9 @@ class ImageFilter(BaseModel):
     user_ids: Optional[List[str]] = None
     location_ids: Optional[List[str]] = None
     instrument_ids: Optional[List[str]] = None
+
+class AnnotationUpdateRequest(BaseModel):
+    image_key: str
+    annotation_index: int
+    instrument: str
+    polygon: dict
