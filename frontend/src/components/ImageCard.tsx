@@ -14,12 +14,19 @@ export function ImageCard({
   onAddAnnotation: (key: string) => void;
   onUpdateAnnotation: (key: string, idx: number) => void;
 }) {
+
+  const handleDeleteClick = () => {
+    if (window.confirm(`Are you sure you want to delete the image "${image.image_key}"? This action cannot be undone.`)) {
+      onDelete(image.image_key);
+    }
+  };
+
   return (
     <div className="bg-white shadow rounded p-4">
       <img src={`http://localhost:8000${image.image_key}`} alt="" className="rounded" />
       <div className="mt-2 text-sm space-y-1">
-      <p 
-          className="text-sm overflow-hidden whitespace-nowrap text-ellipsis" 
+        <p
+          className="text-sm overflow-hidden whitespace-nowrap text-ellipsis"
           title={image.image_key}
         >
           <span className="font-semibold">Image Key:</span> {image.image_key}
@@ -46,17 +53,20 @@ export function ImageCard({
                 </button>
               </div>
             ))}
-
-
-            
           </div>
         )}
       </div>
 
       <div className="flex justify-between mt-4">
-        <button onClick={() => onEdit(image.image_key)} className="bg-green-500 text-white px-3 py-1 rounded">Edit Size</button>
-        <button onClick={() => onAddAnnotation(image.image_key)} className="bg-yellow-500 text-white px-3 py-1 rounded">Add Annotation</button>
-        <button onClick={() => onDelete(image.image_key)} className="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
+        <button onClick={() => onEdit(image.image_key)} className="bg-green-500 text-white px-3 py-1 rounded">
+          Edit Size
+        </button>
+        <button onClick={() => onAddAnnotation(image.image_key)} className="bg-yellow-500 text-white px-3 py-1 rounded">
+          Add Annotation
+        </button>
+        <button onClick={handleDeleteClick} className="bg-red-500 text-white px-3 py-1 rounded">
+          Delete
+        </button>
       </div>
     </div>
   );
