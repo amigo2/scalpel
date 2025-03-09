@@ -333,7 +333,7 @@ async def create_annotation(
 
 
 # 3. Update an existing annotation
-@app.put("/images/{image_key}/annotations/{annotation_index}", response_model=AnnotationRead)
+@app.put("/images/{image_key:path}/annotations/{annotation_index}", response_model=AnnotationRead)
 async def update_annotation(
     image_key: str,
     annotation_index: int,
