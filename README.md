@@ -1,6 +1,6 @@
 # Scalpel Backend Challenge with FastAPI & Async SQLAlchemy
 
-This project is a backend service for a Data Capture Application, designed to handle image processing and annotation management. It is built using FastAPI, async SQLAlchemy, and PostgreSQL, with full Docker support for both the backend and frontend.
+This project is a backend and a frontend service for a Data Capture Application, designed to handle image processing and annotation management. It is built using FastAPI, async SQLAlchemy, and PostgreSQL, with full Docker support for both the backend and frontend.
 
 ## Features
 
@@ -84,31 +84,13 @@ ReDoc: http://127.0.0.1:8000/redoc
 On startup, the application will automatically create (or update) the necessary database tables.
 
 ## Frontend
-Using Create React App:  
-```bash
-npx create-react-app frontend --template typescript
-```
-When installing vite:  
-Target directory "frontend" is not empty.  
-Please choose how to proceed:  
-│  Remove existing files and continue  
-
-```bash
-npm init vite@latest frontend -- --template react-ts
-```
-
-install Tailwind for vite
-```bash
-npm install tailwindcss @tailwindcss/vite
-```
-Now run
+To build frontend
 ```bash
   cd frontend
   npm install
   npm run dev
   ```
 Server will start at http://localhost:5173/
-
 
 ## API Endpoints Overview
 
