@@ -325,8 +325,6 @@ async def get_image_annotations(
 #   ]
 # }
 
-
-
 @app.delete("/images/{image_key:path}")
 async def delete_image(image_key: str, db: AsyncSession = Depends(get_session)):
     logger.info(f"Image key: {image_key}")
