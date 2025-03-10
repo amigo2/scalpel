@@ -52,3 +52,19 @@ venv.bak/
 
 # Ignore the instructions folder
 challenge/
+
+
+/static/*.png
+/static/*.jpg
+/static/*.jpeg
+/static/*.gif
+/static/*.svg
+
+/images/*.png
+/images/*.jpg
+/images/*.jpeg
+/images/*.gif
+/images/*.svg
+
+
+/files/*.png
