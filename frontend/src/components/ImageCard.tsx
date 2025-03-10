@@ -29,7 +29,7 @@ export function ImageCard({
           className="text-sm overflow-hidden whitespace-nowrap text-ellipsis"
           title={image.image_key}
         >
-          <span className="font-semibold">Image Key:</span> {image.image_key}
+           <span className="font-semibold">Image Key:</span> {image.image_key.replace("/static/images/", "")}
         </p>
         <p><strong>Client:</strong> {image.client_id}</p>
         <p><strong>Location:</strong> {image.location_id}</p>
