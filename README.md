@@ -1,13 +1,21 @@
 # Scalpel Backend Challenge with FastAPI & Async SQLAlchemy
 
-This project is a backend service for a Data Capture Application. It provides asynchronous API endpoints for managing images and their annotations using FastAPI, SQLAlchemy (with async support), and PostgreSQL.
+This project is a backend service for a Data Capture Application, designed to handle image processing and annotation management. It is built using FastAPI, async SQLAlchemy, and PostgreSQL, with full Docker support for both the backend and frontend.
 
 ## Features
 
-- **Asynchronous API Endpoints**: Built with FastAPI and async SQLAlchemy.
-- **ORM Models**: Defines models for Images, Annotations, Users, and Locations.
-- **CRUD Operations**: Create images and annotations, update annotations, list images with filters, retrieve images/annotations and return an image (with optional scale and quality adjustments).
-- **Dependency Management**: Uses virtual environments.
+- 🚀 **Asynchronous API Endpoints:** Built with FastAPI and async SQLAlchemy for high performance.
+- 🐳 **Fully Containerized with Docker:** Both the backend (FastAPI) and frontend (React TypeScript) run in Docker containers for easy deployment.
+- ⚛️ **React TypeScript Frontend:** The frontend is built using React with TypeScript for a scalable and maintainable UI.
+- 🗂️ **ORM Models:** Defines Images, Annotations, Users, and Locations as database models.
+- 🔄 **Full CRUD Support:**  
+  - Create images and annotations.  
+  - Update annotations.  
+  - List images with filters.  
+  - Retrieve images and annotations.  
+  - Process images with optional scaling and quality adjustments (JPEG only).  
+
+- 🔧 **Dependency Management:** Uses Docker for environment consistency and easy setup.
 
 ## Project Structure
 ```
