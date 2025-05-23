@@ -16,9 +16,12 @@ import logging
 import json
 from .database import engine, get_session
 from .models import Base, Image, Annotation, Location, User
-from .schemas import (
-    ImageCreate, ImageRead, AnnotationCreate, AnnotationRead, ImageFilter, AnnotationUpdateRequest
+from app.schemas import (
+    ImageCreate, ImageRead,
+    AnnotationCreate, AnnotationRead,
+    ImageFilter, AnnotationUpdateRequest
 )
+
 
 # Configure logging
 logging.basicConfig(

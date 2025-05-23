@@ -3,9 +3,9 @@ import asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from src.app.main import app
+from app.main import app
 from sqlalchemy.orm import sessionmaker, scoped_session
-from src.app.database import DATABASE_URL
+from app.database import DATABASE_URL
 from asyncio import current_task
 
 # ✅ Create an async test engine
@@ -43,5 +43,3 @@ async def test_client():
     """Create a new test client with FastAPI."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         yield client
-
-

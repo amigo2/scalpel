@@ -1,61 +1,56 @@
-# schemas.py
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from datetime import datetime
-from typing import Optional, List, Dict
-from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
+# Reuse the MLTagEnum defined in models
 class MLTagEnum(str, Enum):
     TRAIN = "TRAIN"
     TEST = "TEST"
     LIVE = "LIVE"
 
-# Annotation Schemas
-class AnnotationBase(BaseModel):
+class Polygon(BaseModel):
+    points: List[List[float]]
+
+class AnnotationCreate(BaseModel):
     index: int
     instrument: str
-    polygon: Optional[Dict] = None
+    polygon: Polygon
 
-class AnnotationCreate(AnnotationBase):
-    pass
-
-class AnnotationRead(AnnotationBase):
-    class Config:
-        orm_mode = True
-
-# Image Schemas
-class ImageBase(BaseModel):
+class AnnotationRead(AnnotationCreate):
     image_key: str
-    client_id: str
-    created_at: datetime
-    hardware_id: Optional[str] = None
-    ml_tag: Optional[MLTagEnum] = None
-    location_id: Optional[str] = None
-    user_id: Optional[str] = None
-
-class ImageCreate(ImageBase):
-    annotations: Optional[List[AnnotationCreate]] = []
-
-class ImageRead(BaseModel):
-    image_key: str
-    client_id: str
-    created_at: datetime
-    hardware_id: str
-    ml_tag: Optional[str]
-    location_id: Optional[str]
-    user_id: Optional[str]
-    annotations: List[AnnotationRead] = []  
-
-    model_config = ConfigDict(from_attributes=True) 
-
-
-# Filter Schemas (optional if you want to handle queries)
-class ImageFilter(BaseModel):
-    user_ids: Optional[List[str]] = None
-    location_ids: Optional[List[str]] = None
-    instrument_ids: Optional[List[str]] = None
 
 class AnnotationUpdateRequest(BaseModel):
     image_key: str
     annotation_index: int
     instrument: str
-    polygon: dict
+    polygon: Polygon
+
+class ImageFilter(BaseModel):
+    client_id: Optional[str] = None
+    hardware_id: Optional[str] = None
+    ml_tag: Optional[MLTagEnum] = None
+    location_id: Optional[str] = None
+    user_id: Optional[str] = None
+    created_from: Optional[datetime] = None
+    created_to: Optional[datetime] = None
+
+class ImageBase(BaseModel):
+    client_id: str
+    created_at: datetime
+    hardware_id: Optional[str]
+    ml_tag: Optional[MLTagEnum]
+    location_id: Optional[str]
+    user_id: Optional[str]
+
+class ImageCreate(ImageBase):
+    # image_key is provided by file upload, not by client
+    annotations: Optional[List[AnnotationCreate]] = None
+
+class ImageRead(ImageBase):
+    image_key: str
+    annotations: List[AnnotationRead] = Field(default_factory=list)
+
+    model_config = {
+        "from_attributes": True
+    }
