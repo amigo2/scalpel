@@ -76,12 +76,12 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Login to ECR for Buildx
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ steps.login-ecr.outputs.registry }}
-          username: AWS
-          password: ${{ steps.login-ecr.outputs.password }}
+      # - name: Login to ECR for Buildx
+      #   uses: docker/login-action@v2
+      #   with:
+      #     registry: ${{ steps.login-ecr.outputs.registry }}
+      #     username: AWS
+      #     password: ${{ steps.login-ecr.outputs.password }}
 
       - name: Set up QEMU (multi-arch)
         uses: docker/setup-qemu-action@v2
@@ -105,12 +105,10 @@ jobs:
           SHA_TAG=${{ steps.login-ecr.outputs.registry }}:${GIT_SHA}
 
           docker buildx build \
+            --driver docker \
             --platform linux/amd64 \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache \
             --push \
-            -t "$FULL_TAG" \
-            -t "$SHA_TAG" \
+            -t ${{ steps.login-ecr.outputs.registry }}:latest \
             -f Dockerfile \
             .
 
