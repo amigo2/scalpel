@@ -17,10 +17,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Use Node.js 18
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -31,14 +31,15 @@ jobs:
           npm ci
           npm run build
 
-      - name: Configure AWS Credentials for SPA
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Sync SPA to S3
+      - name: Sync build to S3
         run: |
-          aws s3 sync frontend/dist s3://${{ env.S3_BUCKET }}/ \
+          aws s3 sync frontend/dist \
+            s3://${{ env.S3_BUCKET }}/ \
             --region ${{ env.AWS_REGION }}
 
   deploy_lambda:
@@ -47,24 +48,24 @@ jobs:
     needs: deploy_spa
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Configure AWS Credentials for Lambda
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Set up QEMU
+      - name: Set up QEMU (for multi-arch)
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to ECR
+      - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build & Push Docker Image
+      - name: Build & push Docker image to ECR
         run: |
           docker buildx build \
             --platform linux/amd64 \
@@ -72,7 +73,7 @@ jobs:
             -t "${{ env.ECR_URI }}:latest" \
             .
 
-      - name: Update Lambda Function
+      - name: Update Lambda function
         run: |
           aws lambda update-function-code \
             --function-name "${{ env.LAMBDA_NAME }}" \
