@@ -187,7 +187,7 @@ fernandocabello@Fernandos-MacBook-Pro scalpel % docker tag scalpel:latest \
 
 docker push 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest
 
-nandocabello@Fernandos-MacBook-Pro scalpel % docker manifest inspect 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest \
+docker manifest inspect 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest \
   | grep mediaType                                           
 
 

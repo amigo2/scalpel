@@ -8,10 +8,22 @@ ECR_URI=${ECR_URI:-929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel}
 LAMBDA_NAME=${LAMBDA_NAME:-scalpel-backend}
 
 # --- 1. Build the image for Lambda (amd64 + classic v2 manifest) ---
-export DOCKER_BUILDKIT=0
-docker build \
+# Enable BuildKit so --platform works on Apple Silicon
+export DOCKER_BUILDKIT=1
+
+# Option A: regular build with BuildKit
+# docker build \
+#   --platform linux/amd64 \
+#   -t scalpel:latest \
+#   .
+
+# Option B: use Docker Buildx (uncomment if you prefer)
+docker buildx create --use --bootstrap
+docker buildx build \
   --platform linux/amd64 \
-  -t scalpel:latest .
+  --load \
+  -t scalpel:latest \
+  .
 
 # --- 2. Tag & push to ECR ---
 docker tag scalpel:latest "${ECR_URI}:latest"
