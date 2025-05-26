@@ -57,7 +57,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-300">
-      <TopBar title="Scalpel V2" />
+      <TopBar title="Scalpel V3" />
       <div className="max-w-screen-lg mx-auto p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Images</h2>
