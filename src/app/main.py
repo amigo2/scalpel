@@ -1,7 +1,8 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
+from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +27,15 @@ from app.schemas import (
 from mangum import Mangum
 
 
+
+app = FastAPI(
+    title="Scalpel Challenge, FastAPI & Async SQLAlchemy",
+    docs_url="/docs/",            # <-- note the trailing slash here
+    redoc_url=None,               # disable the ReDoc UI
+    openapi_url="/openapi.json",  # keep the same OpenAPI spec endpoint
+)
+
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level (INFO, DEBUG, etc.)
@@ -35,24 +45,6 @@ logging.basicConfig(
 
 # Create a logger instance for this module
 logger = logging.getLogger(__name__)
-
-
-# Define directories
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
-# We'll store uploads in a subfolder of the static directory (e.g., "uploads")
-UPLOAD_DIR = os.path.join(STATIC_DIR, "images")
-os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
-
-# main.py
-
-app = FastAPI(
-    title="Scalpel Challenge, FastAPI & Async SQLAlchemy",
-    docs_url="/docs/",            # <-- note the trailing slash here
-    redoc_url=None,               # disable the ReDoc UI
-    openapi_url="/openapi.json",  # keep the same OpenAPI spec endpoint
-)
-
 
 
 origins = [
@@ -70,23 +62,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+# 1) Serve your backend uploads/static
+BASE_DIR = os.path.dirname(__file__)
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+UPLOAD_DIR = os.path.join(STATIC_DIR, "images")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 
 
+# # 2) (Optionally) Jinja2 templates for any server-rendered pages
+# templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 
-# @app.on_event("startup")
-# async def startup_event():
-#     logger.info("Starting up the application and creating tables...")
-#     """
-#     Create tables at startup (not recommended for production,
-#     but convenient for a coding challenge).
-#     """
-#     async with engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.create_all)
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting up the application and creating tables...")
+    """
+    Create tables at startup (not recommended for production,
+    but convenient for a coding challenge).
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 print("Starting up the application and creating tables...")
 
@@ -100,24 +99,30 @@ async def save_upload_file(upload_file: UploadFile) -> str:
         file_object.write(await upload_file.read())
     # Return the URL path for the file so clients can access it via /static
     return upload_file.filename
-# {
-#     "image_key": "",
-#     "client_id": "client01",
-#     "created_at": "2025-02-24T00:00:00Z",
-#     "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",
-#     "ml_tag": "TRAIN",
-#     "location_id": "loc1",
-#     "user_id": "user1",
-#     "annotations": [
-#         {
-#             "index": 0,
-#             "instrument": "instr1",
-#             "polygon": {
-#                 "points": [[0, 0], [1, 1]]
-#             }
-#         }
-#     ]
-# }
+
+
+# @app.get("/{full_path:path}")
+# async def serve_react_app(full_path: str):
+#     index_path = Path("templates/index.html")
+#     if index_path.exists():
+#         return FileResponse(index_path)
+#     return {"message": "index.html not found"}, 404
+
+
+# # Function to trigger Alembic migrations
+# def apply_migrations():
+#     alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "alembic.ini"))
+#     command.upgrade(alembic_cfg, "head")
+
+# async def delete_all_data(engine: AsyncEngine):
+#     """
+#     Deletes all data from all tables while preserving the schema.
+#     """
+#     print("Deleting all data...")
+#     async with engine.begin() as conn:
+#         for table in reversed(Base.metadata.sorted_tables):
+#             await conn.execute(table.delete())
+#         print("All data deleted successfully.")
 
 
 @app.get("/health", tags=["Health"])
@@ -129,6 +134,26 @@ async def health() -> dict:
     """
     return {"status": "working"}
 
+
+# {
+#         "image_key": "3af9d8da-c689-48f5-bd87-afbfc999e590",  
+#         "client_id": "client01",
+#         "created_at": "2025-02-24T00:00:00Z",
+#         "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",
+#         "ml_tag": "TRAIN",
+#         "location_id": "loc1",
+#         "user_id": "3af9d8da-c689-48f5-bd87-afbfc999e590",  # Use ID from fixture
+#         "annotations": [
+#             {
+#                 "index": 0,
+#                 "instrument": "instr1",
+#                 "polygon": {
+#                     "points": [[0, 0], [1, 1]]
+#                 }
+#             }
+#         ]
+#     }
+# { "image_key": "3af9d8da-c689-48f5-bd87-afbfc999e590",  "client_id": "client01",  "created_at": "2025-02-24T00:00:00Z",   "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",  "ml_tag": "TRAIN", "location_id": "loc1",  "user_id": "3af9d8da-c689-48f5-bd87-afbfc999e590", "annotations": [ "index": 0, "instrument": "instr1", "polygon": {"points": [[0, 0], [1, 1]]}  } ] }
 @app.post("/images", response_model=ImageRead)
 async def create_image(
     image_file: UploadFile = File(...),
@@ -209,7 +234,7 @@ async def create_image(
                 image_key=image_in.image_key,
                 index=ann.index,
                 instrument=ann.instrument,
-                polygon=ann.polygon
+                polygon=ann.polygon.dict()  # Convert Polygon to dict for JSON storage
             )
             new_image.annotations.append(annotation)
     
@@ -263,7 +288,7 @@ async def create_annotation(
         image_key=image_key,
         index=annotation_in.index,
         instrument=annotation_in.instrument,
-        polygon=annotation_in.polygon
+        polygon=annotation_in.polygon.dict()  # Convert Polygon to dict for JSON storage
     )
     db.add(new_annotation)
     await db.commit()
@@ -291,7 +316,7 @@ async def update_annotation(
         raise HTTPException(status_code=404, detail="Annotation not found.")
 
     annotation.instrument = annotation_update.instrument
-    annotation.polygon = annotation_update.polygon
+    annotation.polygon = annotation_update.polygon.dict()  # Convert Polygon to dict for JSON storage
     db.add(annotation)
     await db.commit()
     await db.refresh(annotation)
@@ -425,6 +450,16 @@ async def update_image_file(
 
     return StreamingResponse(buf, media_type=f"image/{image_format.lower()}")
 
+
+# 3) Serve SPA build at root
+FRONTEND_BUILD = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend", "build"))
+app.mount("/", StaticFiles(directory=FRONTEND_BUILD, html=True), name="spa")
+
+# 4) Catch-all for client-side routes (optional)
+@app.get("/{full_path:path}", response_class=HTMLResponse)
+async def spa_fallback(request: Request, full_path: str):
+    index = os.path.join(FRONTEND_BUILD, "index.html")
+    return FileResponse(index)
 
 # Create a Mangum handler for AWS Lambda compatibility
 handler = Mangum(app)
