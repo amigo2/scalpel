@@ -68,3 +68,5 @@ challenge/
 *.tfstate.*
 *.tfvars
 .terraform.lock.hcl
+.terraform/
+terraform/.terraform/
