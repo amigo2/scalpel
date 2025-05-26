@@ -6,10 +6,10 @@ on:
       - master
 
 env:
-  AWS_REGION: eu-west-2
-  ECR_URI: 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel
-  LAMBDA_NAME: scalpel-backend
-  S3_BUCKET: scalpel-frontend-bucket
+  AWS_REGION:   eu-west-2
+  ECR_URI:      929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel
+  LAMBDA_NAME:  scalpel-backend
+  S3_BUCKET:    scalpel-frontend-bucket
 
 jobs:
   deploy_spa:
@@ -20,12 +20,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Use Node.js 18
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Install & Build Frontend
+      - name: Install & build frontend
         working-directory: frontend
         run: |
           npm ci
@@ -38,7 +38,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Sync build to S3
+      - name: Sync SPA to S3
         run: |
           aws s3 sync frontend/dist \
             s3://${{ env.S3_BUCKET }}/ \
@@ -60,25 +60,28 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Set up QEMU (for multi-arch)
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true                # masks the Docker password in logs :contentReference[oaicite:2]{index=2}
+
+      - name: Set up QEMU for multi-arch
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-
-      - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build & push Docker image to ECR
         run: |
           docker buildx build \
             --platform linux/amd64 \
             --push \
-            -t "${{ env.ECR_URI }}:latest" \
+            -t "${{ steps.login-ecr.outputs.registry }}:latest" \
             .
 
       - name: Update Lambda function
         run: |
           aws lambda update-function-code \
             --function-name "${{ env.LAMBDA_NAME }}" \
-            --image-uri "${{ env.ECR_URI }}:latest"
+            --image-uri   "${{ steps.login-ecr.outputs.registry }}:latest"
