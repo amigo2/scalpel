@@ -237,3 +237,29 @@ docker run --platform linux/amd64 -it --rm \
      -d @event.json
 
 * checkout new fuile event.json, can be done with SAM
+
+
+
+### Build or rebuild your SPA on the host:
+
+bash
+Copy
+Edit
+cd frontend
+npm run build
+cd ..
+Restart your compose stack, removing any orphans:
+
+bash
+Copy
+Edit
+docker-compose down
+docker-compose up -d --build --remove-orphans
+Verify inside the running container that the files are present:
+
+bash
+Copy
+Edit
+docker-compose exec web ls /app/frontend/dist
+# you should see index.html, assets/, etc.
+Browse to http://localhost:8000/ — your SPA’s index.html should now load.
