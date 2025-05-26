@@ -14,7 +14,7 @@ COPY src/app /var/task/app
 # 3) (Optional) Copy static into a place that matches your code
 #    If your code does app.mount("/static", StaticFiles(...))
 #    then static should live at /var/task/app/static
-COPY src/app/static /var/task/app/static
+COPY src/app/static       /var/task/app/static
 
 # 4) Tell Lambda to look for the handler symbol in the module app.main
 CMD ["app.main.handler"]
