@@ -53,16 +53,19 @@ venv.bak/
 # Ignore the instructions folder
 challenge/
 
-# un-ignore our Lambda’s static assets
+# … all your existing ignores …
+
+# Ignore "static", "images", and "files" folders everywhere except root
+**/static/
+**/images/
+**/files/
+
+# Now explicitly re-include your Lambda static assets
 !src/app/static/
 !src/app/static/**
 
-# Ignore "static", "images", and "files" folders everywhere EXCEPT in the root
-/static/
-!/static/  # Allow the root "static" folder (if you want to keep it)
-**/static/
-**/images/
-/files/
+# (Optionally, keep the root /static/ if you want)
+!/static/
 
 
 
@@ -74,4 +77,4 @@ challenge/
 .terraform.lock.hcl
 .terraform/
 terraform/.terraform/
-terraform/.terraform/
+
