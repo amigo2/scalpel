@@ -72,9 +72,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
+      - name: Login to ECR (get creds)
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to ECR for Buildx
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          username: AWS
+          password: ${{ steps.login-ecr.outputs.password }}
 
       - name: Set up QEMU (multi-arch)
         uses: docker/setup-qemu-action@v2
@@ -93,7 +100,7 @@ jobs:
       - name: Build & push image
         run: |
           IMAGE_TAG=latest
-          GIT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          GIT_SHA=${GITHUB_SHA::7}
           FULL_TAG=${{ steps.login-ecr.outputs.registry }}:${IMAGE_TAG}
           SHA_TAG=${{ steps.login-ecr.outputs.registry }}:${GIT_SHA}
 
@@ -104,7 +111,7 @@ jobs:
             --push \
             -t "$FULL_TAG" \
             -t "$SHA_TAG" \
-            --file Dockerfile \
+            -f Dockerfile \
             .
 
       - name: Update Lambda to newest image
