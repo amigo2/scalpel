@@ -166,8 +166,62 @@ Note:
 Images are stored following a structure similar to Amazon S3, where the file path and file key (filename) are stored separately.
 
 
-## Interview Review Note
-
-This project is submitted as part of a technical test and is intended for review in the next interview. It is provided "as is" and demonstrates my approach to solving the challenge. I welcome any feedback or discussion during the interview.
 
 
+
+ export AWS_PROFILE=bistro_agent                                                      
+export AWS_REGION=eu-west-2         
+
+aws ecr get-login-password \                                                         
+  | docker login --username AWS --password-stdin 929423420164.dkr.ecr.eu-west-2.amazonaws.com
+
+
+export DOCKER_BUILDKIT=0  
+
+docker build --platform linux/amd64 -t scalpel:latest .           
+
+
+
+fernandocabello@Fernandos-MacBook-Pro scalpel % docker tag scalpel:latest \                              
+  929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest
+
+docker push 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest
+
+nandocabello@Fernandos-MacBook-Pro scalpel % docker manifest inspect 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest \
+  | grep mediaType                                           
+
+
+
+
+# ensure we’re using your bistro_agent profile
+export AWS_PROFILE=bistro_agent AWS_REGION=eu-west-2
+
+# disable BuildKit so we get a classic Docker manifest
+export DOCKER_BUILDKIT=0
+
+# build and tag
+docker build --platform linux/amd64 -t scalpel:latest .
+
+# login + push
+aws ecr get-login-password \
+  | docker login --username AWS --password-stdin 929423420164.dkr.ecr.eu-west-2.amazonaws.com
+
+docker tag scalpel:latest 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest
+docker push 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest
+
+
+## run local
+fernandocabello@Fernandos-MacBook-Pro scalpel % docker run --platform linux/amd64 -it --rm \
+  -p 8000:8000 \
+  --entrypoint uvicorn \
+  scalpel:latest \
+
+
+## test local lambda
+ docker run --platform linux/amd64 -p 9000:8080 --rm scalpel:latest
+
+ fernandocabello@Fernandos-MacBook-Pro scalpel % curl -v -XPOST http://localhost:9000/2015-03-31/functions/function/invocations \
+     -H "Content-Type: application/json" \
+     -d @event.json
+
+* checkout new fuile event.json, can be done with SAM

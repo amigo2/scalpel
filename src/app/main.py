@@ -14,6 +14,7 @@ from io import BytesIO
 import os
 import logging
 import json
+
 from .database import engine, get_session
 from .models import Base, Image, Annotation, Location, User
 from app.schemas import (
@@ -21,6 +22,8 @@ from app.schemas import (
     AnnotationCreate, AnnotationRead,
     ImageFilter, AnnotationUpdateRequest
 )
+
+from mangum import Mangum
 
 
 # Configure logging
@@ -41,7 +44,15 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 UPLOAD_DIR = os.path.join(STATIC_DIR, "images")
 os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
 
-app = FastAPI(title="Scalpel Challenge, FastAPI & Async SQLAlchemy")
+# main.py
+
+app = FastAPI(
+    title="Scalpel Challenge, FastAPI & Async SQLAlchemy",
+    docs_url="/docs/",            # <-- note the trailing slash here
+    redoc_url=None,               # disable the ReDoc UI
+    openapi_url="/openapi.json",  # keep the same OpenAPI spec endpoint
+)
+
 
 
 origins = [
@@ -64,17 +75,22 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting up the application and creating tables...")
-    """
-    Create tables at startup (not recommended for production,
-    but convenient for a coding challenge).
-    """
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+
+
+
+# @app.on_event("startup")
+# async def startup_event():
+#     logger.info("Starting up the application and creating tables...")
+#     """
+#     Create tables at startup (not recommended for production,
+#     but convenient for a coding challenge).
+#     """
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
 
 print("Starting up the application and creating tables...")
+
+
 
 async def save_upload_file(upload_file: UploadFile) -> str:
     # Save file in the UPLOAD_DIR (i.e., static/images)
@@ -103,6 +119,15 @@ async def save_upload_file(upload_file: UploadFile) -> str:
 #     ]
 # }
 
+
+@app.get("/health", tags=["Health"])
+async def health() -> dict:
+    """
+    Basic liveness probe. 
+    Returns 200 OK as long as the Lambda container is up
+    (and Mangum has mounted your ASGI app).
+    """
+    return {"status": "working"}
 
 @app.post("/images", response_model=ImageRead)
 async def create_image(
@@ -399,3 +424,7 @@ async def update_image_file(
         buf.seek(0)
 
     return StreamingResponse(buf, media_type=f"image/{image_format.lower()}")
+
+
+# Create a Mangum handler for AWS Lambda compatibility
+handler = Mangum(app)
