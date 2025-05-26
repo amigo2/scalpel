@@ -53,6 +53,10 @@ venv.bak/
 # Ignore the instructions folder
 challenge/
 
+# un-ignore our Lambda’s static assets
+!src/app/static/
+!src/app/static/**
+
 # Ignore "static", "images", and "files" folders everywhere EXCEPT in the root
 /static/
 !/static/  # Allow the root "static" folder (if you want to keep it)
