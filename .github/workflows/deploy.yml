@@ -104,7 +104,7 @@ jobs:
             --push \
             -t "$FULL_TAG" \
             -t "$SHA_TAG" \
-            --file src/app/Dockerfile \
+            --file Dockerfile \
             .
 
       - name: Update Lambda to newest image
