@@ -263,3 +263,10 @@ Edit
 docker-compose exec web ls /app/frontend/dist
 # you should see index.html, assets/, etc.
 Browse to http://localhost:8000/ — your SPA’s index.html should now load.
+
+
+
+## deploy front end
+aws s3 sync frontend/dist s3://scalpel-frontend-bucket/ \
+  --profile bistro_agent \
+  --region eu-west-2
