@@ -1,0 +1,26 @@
+# Dockerfile.dev
+FROM python:3.9-slim
+
+# 1) Set working dir
+WORKDIR /app
+
+# 2) Install system deps (if any) and Python requirements
+#    (add e.g. `build-essential` here if you compile packages)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      # (add any OS packages you need) \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY src/requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# 3) Copy your app code
+COPY src/app /app/app
+COPY src/app/static /app/app/static
+
+# 4) Expose port for Uvicorn
+EXPOSE 8000
+
+# 5) Default command for local dev
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

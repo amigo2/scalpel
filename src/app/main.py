@@ -75,15 +75,15 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 
-# @app.on_event("startup")
-# async def startup_event():
-#     logger.info("Starting up the application and creating tables...")
-#     """
-#     Create tables at startup (not recommended for production,
-#     but convenient for a coding challenge).
-#     """
-#     async with engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.create_all)
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting up the application and creating tables...")
+    """
+    Create tables at startup (not recommended for production,
+    but convenient for a coding challenge).
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 print("Starting up the application and creating tables...")
 
@@ -117,7 +117,7 @@ async def save_upload_file(upload_file: UploadFile) -> str:
 # }
 
 
-@app.get("/healthy", tags=["Health"])
+@app.get("/health", tags=["Health"])
 async def health() -> dict:
     """
     Basic liveness probe. 
@@ -126,6 +126,26 @@ async def health() -> dict:
     """
     return {"status": "working"}
 
+
+# {
+#         "image_key": "3af9d8da-c689-48f5-bd87-afbfc999e590",  
+#         "client_id": "client01",
+#         "created_at": "2025-02-24T00:00:00Z",
+#         "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",
+#         "ml_tag": "TRAIN",
+#         "location_id": "loc1",
+#         "user_id": "3af9d8da-c689-48f5-bd87-afbfc999e590",  # Use ID from fixture
+#         "annotations": [
+#             {
+#                 "index": 0,
+#                 "instrument": "instr1",
+#                 "polygon": {
+#                     "points": [[0, 0], [1, 1]]
+#                 }
+#             }
+#         ]
+#     }
+# { "image_key": "3af9d8da-c689-48f5-bd87-afbfc999e590",  "client_id": "client01",  "created_at": "2025-02-24T00:00:00Z",   "hardware_id": "3af9d8da-c689-48f5-bd87-afbfc999e589",  "ml_tag": "TRAIN", "location_id": "loc1",  "user_id": "3af9d8da-c689-48f5-bd87-afbfc999e590", "annotations": [ "index": 0, "instrument": "instr1", "polygon": {"points": [[0, 0], [1, 1]]}  } ] }
 @app.post("/images", response_model=ImageRead)
 async def create_image(
     image_file: UploadFile = File(...),
@@ -206,7 +226,7 @@ async def create_image(
                 image_key=image_in.image_key,
                 index=ann.index,
                 instrument=ann.instrument,
-                polygon=ann.polygon
+                polygon=ann.polygon.dict()  # Convert Polygon to dict for JSON storage
             )
             new_image.annotations.append(annotation)
     
@@ -260,7 +280,7 @@ async def create_annotation(
         image_key=image_key,
         index=annotation_in.index,
         instrument=annotation_in.instrument,
-        polygon=annotation_in.polygon
+        polygon=annotation_in.polygon.dict()  # Convert Polygon to dict for JSON storage
     )
     db.add(new_annotation)
     await db.commit()
@@ -288,7 +308,7 @@ async def update_annotation(
         raise HTTPException(status_code=404, detail="Annotation not found.")
 
     annotation.instrument = annotation_update.instrument
-    annotation.polygon = annotation_update.polygon
+    annotation.polygon = annotation_update.polygon.dict()  # Convert Polygon to dict for JSON storage
     db.add(annotation)
     await db.commit()
     await db.refresh(annotation)

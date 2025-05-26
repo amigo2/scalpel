@@ -70,6 +70,13 @@ project-root/
   Build docker app and database, and will run the tests
   ```bash
   docker-compose up --build
+  docker-compose down -v
+
+  docker-compose up -d
+  docker-compose restart web
+
+
+
   ```
   After building, you can run tests separately.  
   Test backend endpoints async to db
@@ -89,6 +96,7 @@ To build frontend
   cd frontend
   npm install
   npm run dev
+  
   ```
 Server will start at http://localhost:5173/
 
@@ -211,10 +219,14 @@ docker push 929423420164.dkr.ecr.eu-west-2.amazonaws.com/scalpel:latest
 
 
 ## run local
-fernandocabello@Fernandos-MacBook-Pro scalpel % docker run --platform linux/amd64 -it --rm \
+docker run --platform linux/amd64 -it --rm \
   -p 8000:8000 \
+  -v "$(pwd)/src/app":/var/task/app \
   --entrypoint uvicorn \
   scalpel:latest \
+  app.main:app \
+  --reload
+
 
 
 ## test local lambda

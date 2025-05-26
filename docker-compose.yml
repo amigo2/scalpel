@@ -2,47 +2,44 @@ version: '3.9'
 
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     depends_on:
       - db
     ports:
       - "8000:8000"
     volumes:
-      # Mount your local src folder to /app in the container so changes are reflected immediately
       - ./src:/app
-      - ./src/app/static:/app/static   # Mount your local static folder
-      # Optionally ignore the __pycache__ folder to avoid caching issues
-      - /app/__pycache_
+      - ./src/app/static:/app/app/static
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:1818@db:5432/scalpel_db"
-    command: ["/wait-for-it.sh", "db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      DATABASE_URL: "postgresql+asyncpg://postgres:scalpel@db:5432/scalpel_db"
+    # CMD comes from Dockerfile.dev (uvicorn --reload)
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - db
+    volumes:
+      - ./src:/app
+      - ./tests:/app/tests
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:scalpel@db:5432/scalpel_db"
+    # Override the CMD just for tests:
+    command: ["pytest", "tests/test_endpoints.py", "--disable-warnings", "-s"]
 
   db:
     image: postgres:16
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "scalpel"
+      POSTGRES_PASSWORD: scalpel
       POSTGRES_DB: scalpel_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-    - "5433:5432"   # This line exposes port 5432 to your host
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-  test:
-    build: .
-    volumes:
-      - ./src:/app/src
-      - ./tests:/app/tests
-    environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:1818@db:5432/scalpel_db"
-    depends_on:
-      - db
-    # Run pytest with your test file (or directory) as the command
-    command: ["pytest", "tests/test_endpoints.py", "--disable-warnings", "-s"]
+      - "5433:5432"   # or "5432:5432" if you don’t need a local Postgres alongside
 
 volumes:
   postgres_data:
