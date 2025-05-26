@@ -75,18 +75,15 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 
-
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting up the application and creating tables...")
-    """
-    Create tables at startup (not recommended for production,
-    but convenient for a coding challenge).
-    """
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+# @app.on_event("startup")
+# async def startup_event():
+#     logger.info("Starting up the application and creating tables...")
+#     """
+#     Create tables at startup (not recommended for production,
+#     but convenient for a coding challenge).
+#     """
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
 
 print("Starting up the application and creating tables...")
 
@@ -120,7 +117,7 @@ async def save_upload_file(upload_file: UploadFile) -> str:
 # }
 
 
-@app.get("/health", tags=["Health"])
+@app.get("/healthy", tags=["Health"])
 async def health() -> dict:
     """
     Basic liveness probe. 
