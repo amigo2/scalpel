@@ -1,7 +1,20 @@
 resource "aws_apigatewayv2_api" "scalpel" {
   name          = "scalpel-http-api"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_origins = [
+      "http://localhost:3000",
+      "https://fr18vg8hdd.execute-api.eu-west-2.amazonaws.com",
+      "http://scalpel-frontend-bucket.s3-website.eu-west-2.amazonaws.com"
+    ]
+    allow_methods     = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers     = ["*"]
+    allow_credentials = true
+    max_age           = 3600
+  }
 }
+
 
 resource "aws_apigatewayv2_integration" "lambda" {
   api_id                 = aws_apigatewayv2_api.scalpel.id

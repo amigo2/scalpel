@@ -231,8 +231,8 @@ docker run --platform linux/amd64 -it --rm \
 
 ## test local lambda
  docker run --platform linux/amd64 -p 9000:8080 --rm scalpel:latest
-
- fernandocabello@Fernandos-MacBook-Pro scalpel % curl -v -XPOST http://localhost:9000/2015-03-31/functions/function/invocations \
+ 
+ curl -v -XPOST http://localhost:9000/2015-03-31/functions/function/invocations \
      -H "Content-Type: application/json" \
      -d @event.json
 

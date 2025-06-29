@@ -64,6 +64,7 @@ resource "aws_lambda_function" "scalpel" {
     variables = {
       DATABASE_URL = "postgresql+asyncpg://${var.db_username}:${var.db_password}@${aws_rds_cluster.aurora.endpoint}:${var.db_port}/${var.db_name}"
       DEBUG        = "false"
+      S3_BUCKET_NAME = "scalpel-frontend-bucket"
     }
   }
 }

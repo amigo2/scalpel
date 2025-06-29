@@ -2,13 +2,13 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = ">= 5.30.0"
     }
   }
   required_version = ">= 1.3.0"
 }
 
 provider "aws" {
-  region  = var.aws_region
-  profile = var.aws_profile    # optional: use if you have multiple profiles in ~/.aws/credentials
+  region  = "eu-west-2"
+  profile = "bistro_agent"
 }
