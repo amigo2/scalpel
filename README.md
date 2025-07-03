@@ -1,4 +1,4 @@
-# Scalpel Backend Challenge with FastAPI & Async SQLAlchemy
+# Scalpel Backend FastAPI & Async SQLAlchemy + AWS Terraform micorservices.
 
 This project is a backend and a frontend service for a Data Capture Application, designed to handle image processing and annotation management. It is built using FastAPI, async SQLAlchemy, and PostgreSQL, with full Docker support for both the backend and frontend.
 
